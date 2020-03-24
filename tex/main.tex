@@ -1,0 +1,211 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{float}
+\usepackage{graphicx}
+
+\title{Appunti Advanced Networking \\ and Wireless Systems}
+\author{Leonardo Fontanelli}
+\date{Marzo 2020}
+
+\begin{document}
+
+\maketitle
+
+\section{IPv6 Base Header}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/base header.png}
+\caption{IPv6 Base Header}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{Version} \textit{(4 bits)}: indica che stiamo utilizzando IPv6.
+    \item \textbf{Traffic class} \textit{(1 byte)}: sostituisce il campo Type of Service dell’IPv4. Può essere utilizzato per dare priorità a certi a datagram di certe applicazioni (per esempio, pacchetti ICMP) rispetto a datagram di altre applicazioni.
+    \item \textbf{Flow label} \textit{(20 bits)}: generato randomicamente. Distingue pacchetti che richiedono stessi trattamenti in modo da facilitare la gestione del traffico real time. E’ considerata una feature sperimentale. Per alcune applicazioni è importante andare a rilevare una sequenza di pacchetti trasmessi da un sender a un receiver. Questo perché i requisiti di un applicazione possono dipendere da alcune metriche di performance che considerano più pacchetti contemporaneamente. Senza la flow label, per identificare pacchetti appartenenti allo stesso flusso si usavano implicitamente gli indirizzi di destinazione e sorgente. Con questo nuovo parametro si può specificare in modo esplicito. Il sender mette lo stesso valore di flow label per i pacchetti che appartengono allo stesso flow, quindi il flusso viene riconosciuto dai router guardando IP Address del sender e flow label Da aggiungere, inoltre, che con il NAT non funzionava, perché il source address cambia (ci possono essere più sender dietro lo stesso NAT con lo stesso indirizzo).
+    \item \textbf{Payload length} \textit{(2 bytes)}: non include la lunghezza dell’header, com’era in IPv4. Gli header di estensione sono considerati come parte del payload.
+    \item \textbf{Hop limit} \textit{(1 byte)}: Analogo al campo TTL nell’IPv4, ma in questo caso non è espresso in secondi. Quindi, ogni device intermedio prima della destinazione, riduce di uno l’hop limit, se questo arriva a 0 il pacchetto viene scartato.
+    \item \textbf{Next header} \textit{(1 byte)}: Assomiglia al tipo di protocollo in IPv4 ma è molto di più, riflette la nuova organizzazione dei pacchetti IPv6.
+\end{itemize}
+
+Nell’header dell’IPv4 c’èra IHL (Internet Leader Length) che serviva per comunicare al ricevitore e ai nodi intermedi la lunghezza dell’header, che era variabile per via del campo options di dimensioni variabili.
+IPv6, invece ha un header di dimensione fissa, il controllo viene fatto via Hardware. 40 Byte.
+IPv6 non è provvisto di frammentazione. In IPv4, se il pacchetto è più grande di MTU, si frammenta; in IPv6 si droppa.
+MTU varia a seconda del canale. 1280 è il minimo MTU che si può assumere su un qualunque link di internet. Se si vuole spedire di più, bisogna stimare MTU lungo il path. 
+
+\section{IPv6 Header Structure}
+Un Base Header (40 bytes), più zero o più extension headers di dimensione variabile.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/header structure.png}
+\caption{IPv6 Header Structure}
+\end{figure}
+
+Ogni extension contiene una sola feature e tutti i dati necessari a questa feature.Next header contiene le informazioni sul tipo di dati contenuti nel successivo header. Header extensions length contiene la lunghezza dell’header, in pratica contiene un puntatore alla prossima estensione. \\
+Quindi, ogni extension header può essere considerato come un sotto-protocollo che svolge una nuova funzione. E’ possibile che in un extension header sia contenuto un altro pacchetto IPv6: questa tecnica è chiamata “tunneling”.\\
+Valori nel campo “Next Header” (base e extension):
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/next header values.png}
+\caption{IPv6 Next Header Values}
+\end{figure}
+
+Gli extension headers vengono inseriti solo quando è necessario. Sono processati nell’ordine in cui appaiono dal nodo identificato dal destination address. \\
+Valori che può assumere il campo Next Header:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/next header used.png}
+\caption{IPv6 Next Header Values used}
+\end{figure}
+
+I valori “ESP header” e “Authentication Header” servono per sicurezza, autenticazione ed encryption. Valore “No next Header” serve a specificare che non c’è nient’altro nel pacchetto dopo. \\
+La regola generale è che il base header venga processato da ogni dispositivo intermedio da cui passa il pacchetto (ogni router del percorso più la destinazione). Mentre gli extension header vengono lette solo a destinazione. L’unica eccezione riguarda l’ “hop by hop options header”.\\
+Il “processare un header” si riferisce al fatto che il payload viene mandato al livello superiore.
+Solitamente si rispetta un ordine, ovvero il “routing header” deve essere prima del “fragment header”.
+
+\subsection{Hop-by-Hop Options header}
+Porta informazioni opzionali che devono essere esaminate da ogni nodo sul cammino (hop-by-hop).\\
+Se il pacchetto contiene più extension headers, questo deve essere il primo.\\ 
+Formato:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/hopbyhop format.png}
+\caption{Hop-by-Hop Option Header Format}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{Next Header} \textit{(1 byte)}
+    \item \textbf{Header Extension Length} \textit{(1 byte)}
+    \begin{itemize}
+        \item Lunghezza dell’header in unità di otto byte (meno 1)
+    \end{itemize}
+    \item \textbf{Options}: una o più
+\end{itemize}
+
+Per quanto riguarda il campo Options:
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/option field.png}
+\caption{Option field}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{Action} \textit{(2 bits)}: Cosa fare se l'opzione non è riconosciuta
+    \begin{itemize}
+        \item \textbf{00}: Salta e continua a processare.
+        \item \textbf{01}: Scarta il pacchetto.
+        \item \textbf{10}: Scarta il pacchetto e manda un messaggio ICMP Parameter Problem all’indirizzo Source del pacchetto.
+        \item \textbf{11}: Scarta il pacchetto e manda un messaggio ICMP Parameter Problem all’indirizzo Source del pacchetto solo se la destinazione non è un indirizzo multicast
+    \end{itemize}{}
+    \item \textbf{C} \textit{(1 bit)}
+    \begin{itemize}
+        \item \textbf{1}: l’informazione di opzione può cambiare in viaggio
+        \item \textbf{0}: l’informazione di opzione non cambia in viaggio
+    \end{itemize}
+    \item \textbf{Type}
+    \begin{itemize}
+        \item \textbf{Jumbo Payload} \textit{(Type = 194)}:   Utilizzato per inviare pacchetti molto grandi la cui lunghezza non può essere codificata su soltanto 16 bits (>64 KB). \\ Quando viene utilizzato, il campo length del payload IPv6 è settato a 0. \\ La lunghezza del pacchetto è codificata con 32-bits, supporta la trasmissione di pacchetti che stanno tra 65.536 e 4.294.967.295 bytes (4GB).\\ Compromesso tra il design iniziale di IPv6 e requirements speciali di networking. \\ Quindi, le informazioni del payload non vengono messe all’interno della sezione payload ma all’interno dell’estensione.
+        \item \textbf{Router Alert} \textit{(Type = 5)}: Indica ad un router sul cammino di forwarding che il pacchetto contiene informazioni importanti che devono essere processate dal router.\\ Esempio: RSVP utilizza pacchetti di controllo che contengono informazioni che hanno bisogno di essere interpretate o aggiornate da routers sul cammino.
+    \end{itemize}
+\end{itemize} 
+
+\subsection{Routing Header}
+Definisce una lista di nodi intermedi che devono essere visitati sul cammino alla destinazione
+\begin{itemize}
+    \item \textbf{Routing Type}
+    \begin{itemize}
+        \item 0: default
+        \item 2: Mobile IPv6
+        \item 3: RPL
+    \end{itemize}
+    \item \textbf{Segment Left}: nodi rimanenti che devono essere visitati
+    \item \textbf{Address} (RT = 0)
+\end{itemize}
+Di solito non si ha il controllo sulla route utilizzata per raggiungere la destinazione finale. Per avere il controllo sul path si usa questa estensione, dove si indica la lista dei router che si vuole che vengano attraversati per consegnare il pacchetto. Non si vanno a rimuovere via via i routers, cosicché il destinatario può sapere il percorso fatto dal pacchetto per raggiungerlo. Non si tiene però conto, in questo modo, del fatto che uno di questi router potrebbe essere congestionato.
+Soluzione: loose control, ovvero non si specifica tutta la lista ma solo un hop dal quale attraversare. \\
+A volte è necessario costruire router senza routing table. Rilevante nelle capillary network dove il router potrebbe essere un sensore. Accade ad esempio in RPL (Routing protocol for low power and lossy network).
+Un problema è legato al fatto che alcuni nodi intermedi potrebbero essere malevoli e leggere i pacchetti che poi verranno inoltrati. Un altro possibile problema riguarda il DoS attack: ovvero si possono modificare gli indirizzi dei nodi intermedi e far convergere tutto il traffico verso un solo nodo. Per questo motivo adesso questo header è deprecato.
+
+\subsection{Fragment Header}
+Diversamente da IPv4, i routers non frammentano pacchetti IPv6.
+La frammentazione avviene solo all’host sorgente, che manda il pacchetto. L’host di destinazione gestisce semplicemente il riassamblamento. I pacchetti IPv6 più larghi dell’MTU sul link di forwarding sono scartati dal router. \\
+Gli host IPv6 utilizzano una procedura di discovery di cammini MTU.
+La minima grandezza IPv6 MTU è 1280 bytes. \\
+Questo header viene usato dal sender nel caso voglia frammentare il pacchetto. Solo il sender può usare la frammentazione e il ricevente si preoccupa di ricollegare i pacchetti frammentati. I nodi intermedi non usano frammentazione, inoltrano solo gli stessi pacchetti. \\
+Per definizione un link in cui si usa IPv6 deve garantire un minimum MTU pari a 1280 bytes, per cui se un sender manda un pacchetto di dimensione minore a 1280 bytes saprà con certezza che il pacchetto arriverà a destinazione senza essere scartato o frammentato dai router lungo il path.
+E se un sender volesse mandare pacchetti più grandi di 1280 bytes, deve usare la path MTU discovery per scoprire se lungo il cammino è disponibile un MTU maggiore di 1280 bytes, oppure lo stesso sender può usare la frammentazione. \\
+Path MTU discovery procedure: in questa procedura si usa ICMPv6 per scambiarsi informazioni riguardo l’MTU. Per scoprire la minima MTU si manda un pacchetto di una certa dimensione e se non riceviamo in risposta nessun errore ICMPv6, allora l’MTU minimo è sicuramente maggiore della dimensione del pacchetto. Se il minimo MTU è minore, il router scarterà il pacchetto e manderà un pacchetto ICMPv6 di errore al sender con all’interno il valore del minimo MTU.
+Se un link non è in grado di garantire una MTU di 1280 bytes, allora non potrà utilizzare IPv6 (sarà un problema con IoT).
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/fragment header.png}
+\caption{Fragment Header}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{Fragment Offset} \textit{(13 bits)}: L’offset in unità di 8 byte del dato in questo pacchetto relativo all’inizio del dato nel pacchetto originale.
+    \item \textbf{M-Flag} \textit{(1 bit)}:
+    \begin{itemize}
+        \item 1: più frammenti
+        \item 0: ultimo frammento
+    \end{itemize}
+    \item \textbf{Identification} \textit{(4 bytes)}: Generato dall’host sorgente in modo da identificare tutti i pacchetti che appartengono al pacchetto originale.
+\end{itemize}
+
+\subsection{Altri Extension Headers}
+\begin{itemize}
+    \item Authentication Header
+    \item Encapsulating Payload Security Header \\
+    IPv6 security support (IPsec)
+    \item No Next Header: No Payload
+    \item Destination Options Header \\
+    Lo stesso di Hop-by-Hop, ma le opzioni devono essere processate solo alla destinazione. \\
+    Utilizzato dal Mobile IPv6
+\end{itemize}
+
+\section{Categorie di indirizzi}
+\begin{itemize}
+    \item \textbf{Unicast}: identifica in maniera univoca un’interfaccia di un nodo IPv6. Un pacchetto inviato ad un indirizzo unicast è inviato all’interfaccia identificata da quell’indirizzo.
+    \item \textbf{Multicast}: identifica un gruppo di interfacce IPv6. Un pacchetto inviato ad un indirizzo multicast è processato da tutti i membri del gruppo multicast.
+    \item \textbf{Anycast}: assegnato a interfacce multiple (tipicamente su nodi multipli). Un pacchetto inviato ad un indirizzo anycast è consegnato a soltanto una di queste interfacce (tipicamente la più vicina).
+\end{itemize}
+
+Non è presente il broadcast in IPv6. Il broadcast veniva usato in IPv4 con DHCP ad esempio. Il Broadcasting in IPv4 è limitato alla stessa subnet (rete locale, ovvero il router non manda verso l’esterno i pacchetti broadcast). \\
+In IPv6 si utilizzano di default dei Multicast address per identificare il servizio necessario. Questo indirizzo sarà associato al server che svolge quel servizio, quindi tutti i server DHCP avranno lo stesso indirizzo multicast IPv6. In questo modo il pacchetto viene ricevuto solo dal server DHCP e tutti gli altri nodi non interessati (dato che non forniscono quel servizio) non riceveranno il messaggio, non dovranno quindi processarlo per poi scartarlo (come in IPv4).
+Un indirizzo IPv6 è assegnato ad un’interfaccia, almeno un indirizzo unicast per interfaccia di un nodo. Una singola interfaccia può essere assegnata a più indirizzi IPv6 di ogni tipo. 
+Gli indirizzi IPv6 hanno uno “scope” (codificato come parte dell’indirizzo): lo “scope” è un intervallo topologico tra cui gli indirizzi potrebbero essere usati come identificatori unici. E’ una parte dell’indirizzo che indica la parte della rete dove l’indirizzo può essere usato come unico.
+Ci sono scope globali e non globali.
+Non è più presente ARP, il servizio viene fornito direttamente da IPv6. Scope è un sottoinsieme di tutta la network codificata con un indirizzo.
+In IPv4 c’è solo uno scopo, che è il global-scope, mentre in IPv6 c’è sia il global-scope che local-scope.
+
+\subsection{Link IPv6}
+Identificato da un set di interfacce che possono comunicare direttamente tra di loro (hop singolo). Un link IPv6 è un’astrazione, insieme di interfacce che possono comunicare direttamente senza l’intermezzo di un router. 
+Il protocollo IP introduce un modello per modellare la rete. Un link che pensiamo come ad esempio un filo, è in realtà un'astrazione di ciò che il sottostante link-layer protocol permette di fare. Se, per esempio, si dice che un link è broadcast, significa che la sottostante link-layer technology mette a disposizione di IP la comunicazione broadcast (non si parla quindi del mezzo). \\
+Ethernet supporta broadcast, la tecnologia però, non lo è. È connessa a degli switch in unicast (point-to-point).
+Tipiche assunzioni riguardo ad un link:
+\begin{itemize}
+    \item Stabile (nel tempo)
+    \item Single link-layer broadcast domain
+    \item Transitive (se A-B e B-C, allora A-C)
+\end{itemize}{}
+Implicazioni:
+\begin{itemize}
+    \item I prefissi network possono essere usati per determinare se un'interfaccia è attaccata ad un certo link.
+    \item La rilevazione di indirizzi duplicati può essere facilmente indirizzata
+\end{itemize}{}
+Se non vale la proprietà transitiva, non si può usare la on-link determination. Quindi, il discorso è che le funzionalità che otteniamo ad un determinato livello (in questo caso 3, IPv6) dipendono da cosa ottieni dai livelli sottostanti.\\
+La transitività riguarda i link unicast, non broadcast. Se un link è broadcast puoi far girare una procedura (duplicate address detection - stateless address autoconfiguration) per controllare se ci sono altri nodi sullo stesso link che utilizzano lo stesso indirizzo che si vuole assegnare.
+
+\subsection{Address Scope}
+\begin{itemize}
+    \item \textbf{Global}
+\end{itemize}{}
+
+
+
+\end{document}
