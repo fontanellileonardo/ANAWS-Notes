@@ -28,10 +28,7 @@
     \item \textbf{Next header} \textit{(1 byte)}: Assomiglia al tipo di protocollo in IPv4 ma è molto di più, riflette la nuova organizzazione dei pacchetti IPv6.
 \end{itemize}
 
-Nell’header dell’IPv4 c’èra IHL (Internet Leader Length) che serviva per comunicare al ricevitore e ai nodi intermedi la lunghezza dell’header, che era variabile per via del campo options di dimensioni variabili.
-IPv6, invece ha un header di dimensione fissa, il controllo viene fatto via Hardware. 40 Byte.
-IPv6 non è provvisto di frammentazione. In IPv4, se il pacchetto è più grande di MTU, si frammenta; in IPv6 si droppa.
-MTU varia a seconda del canale. 1280 è il minimo MTU che si può assumere su un qualunque link di internet. Se si vuole spedire di più, bisogna stimare MTU lungo il path. 
+Nell’header dell’IPv4 c’èra IHL (Internet Leader Length) che serviva per comunicare al ricevitore e ai nodi intermedi la lunghezza dell’header, che era variabile per via del campo options di dimensioni variabili. IPv6, invece ha un header di dimensione fissa, il controllo viene fatto via Hardware. 40 Byte. IPv6 non è provvisto di frammentazione. In IPv4, se il pacchetto è più grande di MTU, si frammenta; in IPv6 si droppa. MTU varia a seconda del canale. 1280 è il minimo MTU che si può assumere su un qualunque link di internet. Se si vuole spedire di più, bisogna stimare MTU lungo il path. 
 
 \section{IPv6 Header Structure}
 Un Base Header (40 bytes), più zero o più extension headers di dimensione variabile.
@@ -42,9 +39,7 @@ Un Base Header (40 bytes), più zero o più extension headers di dimensione vari
 \caption{IPv6 Header Structure}
 \end{figure}
 
-Ogni extension contiene una sola feature e tutti i dati necessari a questa feature.Next header contiene le informazioni sul tipo di dati contenuti nel successivo header. Header extensions length contiene la lunghezza dell’header, in pratica contiene un puntatore alla prossima estensione. \\
-Quindi, ogni extension header può essere considerato come un sotto-protocollo che svolge una nuova funzione. E’ possibile che in un extension header sia contenuto un altro pacchetto IPv6: questa tecnica è chiamata “tunneling”.\\
-Valori nel campo “Next Header” (base e extension):
+Ogni extension contiene una sola feature e tutti i dati necessari a questa feature.Next header contiene le informazioni sul tipo di dati contenuti nel successivo header. Header extensions length contiene la lunghezza dell’header, in pratica contiene un puntatore alla prossima estensione. \\ Quindi, ogni extension header può essere considerato come un sotto-protocollo che svolge una nuova funzione. E’ possibile che in un extension header sia contenuto un altro pacchetto IPv6: questa tecnica è chiamata “tunneling”. \\ Valori nel campo “Next Header” (base e extension):
 
 \begin{figure}[H]
 \centering
@@ -52,8 +47,7 @@ Valori nel campo “Next Header” (base e extension):
 \caption{IPv6 Next Header Values}
 \end{figure}
 
-Gli extension headers vengono inseriti solo quando è necessario. Sono processati nell’ordine in cui appaiono dal nodo identificato dal destination address. \\
-Valori che può assumere il campo Next Header:
+Gli extension headers vengono inseriti solo quando è necessario. Sono processati nell’ordine in cui appaiono dal nodo identificato dal destination address. \\ Valori che può assumere il campo Next Header:
 
 \begin{figure}[H]
 \centering
@@ -61,15 +55,10 @@ Valori che può assumere il campo Next Header:
 \caption{IPv6 Next Header Values used}
 \end{figure}
 
-I valori “ESP header” e “Authentication Header” servono per sicurezza, autenticazione ed encryption. Valore “No next Header” serve a specificare che non c’è nient’altro nel pacchetto dopo. \\
-La regola generale è che il base header venga processato da ogni dispositivo intermedio da cui passa il pacchetto (ogni router del percorso più la destinazione). Mentre gli extension header vengono lette solo a destinazione. L’unica eccezione riguarda l’ “hop by hop options header”.\\
-Il “processare un header” si riferisce al fatto che il payload viene mandato al livello superiore.
-Solitamente si rispetta un ordine, ovvero il “routing header” deve essere prima del “fragment header”.
+I valori “ESP header” e “Authentication Header” servono per sicurezza, autenticazione ed encryption. Valore “No next Header” serve a specificare che non c’è nient’altro nel pacchetto dopo. \\ La regola generale è che il base header venga processato da ogni dispositivo intermedio da cui passa il pacchetto (ogni router del percorso più la destinazione). Mentre gli extension header vengono lette solo a destinazione. L’unica eccezione riguarda l’ “hop by hop options header”.\\ Il “processare un header” si riferisce al fatto che il payload viene mandato al livello superiore. \\ Solitamente si rispetta un ordine, ovvero il “routing header” deve essere prima del “fragment header”.
 
 \subsection{Hop-by-Hop Options header}
-Porta informazioni opzionali che devono essere esaminate da ogni nodo sul cammino (hop-by-hop).\\
-Se il pacchetto contiene più extension headers, questo deve essere il primo.\\ 
-Formato:
+Porta informazioni opzionali che devono essere esaminate da ogni nodo sul cammino (hop-by-hop).\\ Se il pacchetto contiene più extension headers, questo deve essere il primo.\\ Formato:
 
 \begin{figure}[H]
 \centering
@@ -203,8 +192,71 @@ La transitività riguarda i link unicast, non broadcast. Se un link è broadcast
 
 \subsection{Address Scope}
 \begin{itemize}
-    \item \textbf{Global}
+    \item \textbf{Global Address scope}: unico nell'intera internet
+    \item \textbf{Link-local}: Assomiglia vagamente ai private address di IPv4, ma è più specifico. Grazie al link-local address ed al fatto che gli host possono autoconfigurare le proprie interfacce, la comunicazione su un link può avvenire senza bisogno di altro, senza bisogno di un gestore.\\
+    L'indirizzo quindi è unico sul link al quale è attaccata l'interfaccia corrispondente. 
+    \item \textbf{Unique local}: Indirizzo globally unique, ma valido solo in un sottoinsieme dei link. Non dovrebbe essere "routato" nel global Internet.\\ In IPv4 c'erano gli indirizzi privati, come 192.168.0.1: questa soluzione non garantisce unicità globale: collegando 2 reti si hanno conflitti di indirizzi.
 \end{itemize}{}
+
+\subsection{Notazione di indirizzi}
+\textbf{x:x:x:x:x:x:x:x} dove x è un blocco da 16bit rappresentato da 4 cifre esadecimali.\\ Regole di abbreviazione:
+\begin{itemize}
+    \item Zeri iniziali possono essere saltati
+    \item Zeri consecutivi possono essere sostituiti da "::" e questa regola può essere applicata soltanto una volta, altrimenti non sapresti la dimensione dei blocchi rimossi
+\end{itemize}{}
+L'indirizzo con tutti 0: \textbf{0:0:0:0:0:0:0:0} (::) indica un indirizzo non specificato.\\ L'indirizzo \textbf{0:0:0:0:0:0:0:1} (::1) indica l'indirizzo loopback, ovvero corrisponde al localhost in IPv4.
+
+\subsection{Prefissi: notazione e allocazione}
+Simile all'IPv4 con CIDR: [Indirizzo IPv6]/[lunghezza prefisso].\\
+Identifica un set di indirizzi che, ad esempio, possono appartenere alla stessa subnet.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/prefix notation.png}
+\caption{Allocazione dei prefissi}
+\end{figure}
+
+\subsubsection{Global Unicast}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/global unicast.png}
+\caption{Global unicast address}
+\end{figure}
+
+Il prefisso Global Routing identifica il range di indirizzi allocati ad un luogo. Questa divisione è un possibile uso; l'unica cosa obbligatoria è avere una parte per la rete (subnet) e una parte per l'interfaccia. Questo boundary è 64, la divisione è fissata.
+
+\paragraph{Interface ID}
+Perché si hanno così tanti bit per l'Interface ID? In IPv4, ad esempio, si hanno $2^{8}-1$ indirizzi assegnabili manualmente o automaticamente, ad esempio tramite un server DHCP. \\ L'idea in IPv6, è fare un'implementazione di questa operazione completamente stateless. Cosa si intende per stateless? E' un pezzo di informazione memorizzato da qualche parte, che sia sul nodo (configurazione manuale) o sul DHCP server. La fai usando il link-layer address. Non c'è uno "state" al livello 3. Il link-layer address è univoco, perché IEEE gestisce lo spazio di indirizzi. È diviso in 2 parti. L'univocità della prima parte in base al produttore, è garantito da IANA, mentre la parte rimanente dipende dal produttore. Si suppone che sia univoco, a livello link-layer. \\ Questa specifica è stata estesa a 64 bit, per questo in IPv6 si usano 64 bit per l'interface ID: tali bit corrisponderanno al link-layer address. \\ Ci sono regole per passare da 48 a 64 bit:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/64-48 conversion.png}
+\caption{Conversione da 48 a 64}
+\end{figure}
+
+\textit{SLAAC = Stateless Address AutoConfiguration} \\ Si aggiungono le parti rosse indicate in figura. Adesso, ogni interfaccia può comunicare il proprio Interface ID. \\ Si crea un problema: si può identificare il dispositivo indipendentemente da dove ti colleghi: per questo, infatti, ci sono diversi modi per generare l'ID dell'interfaccia. 
+
+\subparagraph{Problema della privacy}  
+L'accesso ad Internet potrebbe essere tracciato anche tra networks, questo perché l'identificatore è univoco tra le interfacce. 
+\begin{itemize}
+    \item \textbf{Stable privacy addresses:} Non è basato su un identificatore hardware, viene generato in modo random. Non cambia all'interno di una subnet, ma cambia quando l'host si muove da un network all'altro.
+    \item \textbf{Temporary transient:} Assegnato utilizzando un numero random che cambia ad intervalli regolari.
+\end{itemize}
+
+\paragraph{Indirizzi link-local e local}
+Gli indirizzi link-local sono assegnati di default attraverso auto-configurazione. L'ID Globale di indirizzi univoci IPv6 è generato randomicamente.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/linklocal.png}
+\caption{Indirizzi link local}
+\end{figure}
+
+I 64 bit finali sono quelli generati nei modi spiegati precedentemente (Interface ID). \\ Prefisso: FC00::/7 identifica gli indirizzi locali IPv7 Unicode. \\ Il bit L è settato a 1 se il prefisso è assegnato localmente e se settato a 0, potrebbe essere definito in futuro.
+
+\subsubsection{Indirizzi Anycast}
+Un indirizzo Anycast è assegnato ad interfacce multiple (tipicamente su nodi multipli). Un pacchetto inviato ad un indirizzo anycast è consegnato a soltanto una di queste interfacce (tipicamente la più vicina). \\ Progettato per fornire ridondanza e bilanciamento del carico quando lo stesso servizio è fornito da host o router multipli, come nel caso del DNS.
 
 
 
