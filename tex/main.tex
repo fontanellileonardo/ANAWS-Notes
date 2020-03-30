@@ -4,15 +4,27 @@
 \usepackage{graphicx}
 
 \title{Appunti Advanced Networking \\ and Wireless Systems}
-\author{Leonardo Fontanelli}
-\date{Marzo 2020}
+\author{}
+\date{Marzo - Aprile 2020}
 
 \begin{document}
 
 \maketitle
 
-\section{IPv6 Base Header}
+\tableofcontents
 
+\newpage
+\section{IPv6}
+Gli indirizzi IPv4 stanno finendo a causa della rapida crescita degli utenti Internet (limite teorico di 4.3 miliardi di indirizzi), quindi perchè IPv6 non è ancora lo standard?
+\begin{itemize}
+    \item Implica un grande cambiamento nell'infrastruttura di rete.
+    \item Infrangerebbe un grande principio del protocollo IP: l'\textit{univocità} degli indirizzi.
+    \item Il NAT funziona talmente bene nel risolvere problemi di spazio di indirizzamento IPv4 che fino ad oggi non si è sentito il bisogno di passare a IPv6.
+\end{itemize}
+Tuttavia le cose ora stanno cambiando: la crescita demografica accoppiata ad una crescente richiesta di accesso ad internet (pensiamo a paesi come Cina ed India) si traducono in una grande richiesta di indirizzi IP nel futuro prossimo.
+Inoltre, in futuro, con l'avvento dell'IoT ci saranno numerosi oggetti sempre connessi ad internet (es. sensori domestici) per i quali servirà un indirizzo IP permanente (\textit{always-on-access}).
+
+\subsection{IPv6 Base Header}
 \begin{figure}[H]
 \centering
 \includegraphics[scale=0.5]{figures/base header.png}
@@ -114,20 +126,13 @@ Definisce una lista di nodi intermedi che devono essere visitati sul cammino all
     \item \textbf{Segment Left}: nodi rimanenti che devono essere visitati
     \item \textbf{Address} (RT = 0)
 \end{itemize}
-Di solito non si ha il controllo sulla route utilizzata per raggiungere la destinazione finale. Per avere il controllo sul path si usa questa estensione, dove si indica la lista dei router che si vuole che vengano attraversati per consegnare il pacchetto. Non si vanno a rimuovere via via i routers, cosicché il destinatario può sapere il percorso fatto dal pacchetto per raggiungerlo. Non si tiene però conto, in questo modo, del fatto che uno di questi router potrebbe essere congestionato.
-Soluzione: loose control, ovvero non si specifica tutta la lista ma solo un hop dal quale attraversare. \\
-A volte è necessario costruire router senza routing table. Rilevante nelle capillary network dove il router potrebbe essere un sensore. Accade ad esempio in RPL (Routing protocol for low power and lossy network).
-Un problema è legato al fatto che alcuni nodi intermedi potrebbero essere malevoli e leggere i pacchetti che poi verranno inoltrati. Un altro possibile problema riguarda il DoS attack: ovvero si possono modificare gli indirizzi dei nodi intermedi e far convergere tutto il traffico verso un solo nodo. Per questo motivo adesso questo header è deprecato.
+Di solito non si ha il controllo sulla route utilizzata per raggiungere la destinazione finale. Per avere il controllo sul path si usa questa estensione, dove si indica la lista dei router che si vuole che vengano attraversati per consegnare il pacchetto. Non si vanno a rimuovere via via i routers, cosicché il destinatario può sapere il percorso fatto dal pacchetto per raggiungerlo. Non si tiene però conto, in questo modo, del fatto che uno di questi router potrebbe essere congestionato. Soluzione: loose control, ovvero non si specifica tutta la lista ma solo un hop dal quale attraversare. \\ A volte è necessario costruire router senza routing table. Rilevante nelle capillary network dove il router potrebbe essere un sensore. Accade ad esempio in RPL (Routing protocol for low power and lossy network). Un problema è legato al fatto che alcuni nodi intermedi potrebbero essere malevoli e leggere i pacchetti che poi verranno inoltrati. Un altro possibile problema riguarda il DoS attack: ovvero si possono modificare gli indirizzi dei nodi intermedi e far convergere tutto il traffico verso un solo nodo. Per questo motivo adesso questo header è deprecato.
 
 \subsection{Fragment Header}
 Diversamente da IPv4, i routers non frammentano pacchetti IPv6.
 La frammentazione avviene solo all’host sorgente, che manda il pacchetto. L’host di destinazione gestisce semplicemente il riassamblamento. I pacchetti IPv6 più larghi dell’MTU sul link di forwarding sono scartati dal router. \\
 Gli host IPv6 utilizzano una procedura di discovery di cammini MTU.
-La minima grandezza IPv6 MTU è 1280 bytes. \\
-Questo header viene usato dal sender nel caso voglia frammentare il pacchetto. Solo il sender può usare la frammentazione e il ricevente si preoccupa di ricollegare i pacchetti frammentati. I nodi intermedi non usano frammentazione, inoltrano solo gli stessi pacchetti. \\
-Per definizione un link in cui si usa IPv6 deve garantire un minimum MTU pari a 1280 bytes, per cui se un sender manda un pacchetto di dimensione minore a 1280 bytes saprà con certezza che il pacchetto arriverà a destinazione senza essere scartato o frammentato dai router lungo il path.
-E se un sender volesse mandare pacchetti più grandi di 1280 bytes, deve usare la path MTU discovery per scoprire se lungo il cammino è disponibile un MTU maggiore di 1280 bytes, oppure lo stesso sender può usare la frammentazione. \\
-Path MTU discovery procedure: in questa procedura si usa ICMPv6 per scambiarsi informazioni riguardo l’MTU. Per scoprire la minima MTU si manda un pacchetto di una certa dimensione e se non riceviamo in risposta nessun errore ICMPv6, allora l’MTU minimo è sicuramente maggiore della dimensione del pacchetto. Se il minimo MTU è minore, il router scarterà il pacchetto e manderà un pacchetto ICMPv6 di errore al sender con all’interno il valore del minimo MTU.
+La minima grandezza IPv6 MTU è 1280 bytes. \\ Questo header viene usato dal sender nel caso voglia frammentare il pacchetto. Solo il sender può usare la frammentazione e il ricevente si preoccupa di ricollegare i pacchetti frammentati. I nodi intermedi non usano frammentazione, inoltrano solo gli stessi pacchetti. \\ Per definizione un link in cui si usa IPv6 deve garantire un minimum MTU pari a 1280 bytes, per cui se un sender manda un pacchetto di dimensione minore a 1280 bytes saprà con certezza che il pacchetto arriverà a destinazione senza essere scartato o frammentato dai router lungo il path. E se un sender volesse mandare pacchetti più grandi di 1280 bytes, deve usare la path MTU discovery per scoprire se lungo il cammino è disponibile un MTU maggiore di 1280 bytes, oppure lo stesso sender può usare la frammentazione. \\ Path MTU discovery procedure: in questa procedura si usa ICMPv6 per scambiarsi informazioni riguardo l’MTU. Per scoprire la minima MTU si manda un pacchetto di una certa dimensione e se non riceviamo in risposta nessun errore ICMPv6, allora l’MTU minimo è sicuramente maggiore della dimensione del pacchetto. Se il minimo MTU è minore, il router scarterà il pacchetto e manderà un pacchetto ICMPv6 di errore al sender con all’interno il valore del minimo MTU.
 Se un link non è in grado di garantire una MTU di 1280 bytes, allora non potrà utilizzare IPv6 (sarà un problema con IoT).
 
 \begin{figure}[H]
@@ -165,10 +170,10 @@ Se un link non è in grado di garantire una MTU di 1280 bytes, allora non potrà
 \end{itemize}
 
 Non è presente il broadcast in IPv6. Il broadcast veniva usato in IPv4 con DHCP ad esempio. Il Broadcasting in IPv4 è limitato alla stessa subnet (rete locale, ovvero il router non manda verso l’esterno i pacchetti broadcast). \\
-In IPv6 si utilizzano di default dei Multicast address per identificare il servizio necessario. Questo indirizzo sarà associato al server che svolge quel servizio, quindi tutti i server DHCP avranno lo stesso indirizzo multicast IPv6. In questo modo il pacchetto viene ricevuto solo dal server DHCP e tutti gli altri nodi non interessati (dato che non forniscono quel servizio) non riceveranno il messaggio, non dovranno quindi processarlo per poi scartarlo (come in IPv4).
+In IPv6 si utilizzano di default dei Multicast address per identificare il servizio necessario. Questo indirizzo sarà associato al server che svolge quel servizio, quindi tutti i server DHCP avranno lo stesso indirizzo multicast IPv6. In questo modo il pacchetto viene ricevuto solo dal server DHCP e tutti gli altri nodi non interessati (dato che non forniscono quel servizio) non riceveranno il messaggio, non dovranno quindi processarlo per poi scartarlo (come in IPv4).\\
 Un indirizzo IPv6 è assegnato ad un’interfaccia, almeno un indirizzo unicast per interfaccia di un nodo. Una singola interfaccia può essere assegnata a più indirizzi IPv6 di ogni tipo. 
 Gli indirizzi IPv6 hanno uno “scope” (codificato come parte dell’indirizzo): lo “scope” è un intervallo topologico tra cui gli indirizzi potrebbero essere usati come identificatori unici. E’ una parte dell’indirizzo che indica la parte della rete dove l’indirizzo può essere usato come unico.
-Ci sono scope globali e non globali.
+Ci sono scope globali e non globali.\\
 Non è più presente ARP, il servizio viene fornito direttamente da IPv6. Scope è un sottoinsieme di tutta la network codificata con un indirizzo.
 In IPv4 c’è solo uno scopo, che è il global-scope, mentre in IPv6 c’è sia il global-scope che local-scope.
 
@@ -256,8 +261,136 @@ Gli indirizzi link-local sono assegnati di default attraverso auto-configurazion
 I 64 bit finali sono quelli generati nei modi spiegati precedentemente (Interface ID). \\ Prefisso: FC00::/7 identifica gli indirizzi locali IPv7 Unicode. \\ Il bit L è settato a 1 se il prefisso è assegnato localmente e se settato a 0, potrebbe essere definito in futuro.
 
 \subsubsection{Indirizzi Anycast}
-Un indirizzo Anycast è assegnato ad interfacce multiple (tipicamente su nodi multipli). Un pacchetto inviato ad un indirizzo anycast è consegnato a soltanto una di queste interfacce (tipicamente la più vicina). \\ Progettato per fornire ridondanza e bilanciamento del carico quando lo stesso servizio è fornito da host o router multipli, come nel caso del DNS.
+Un indirizzo Anycast è assegnato ad interfacce multiple (tipicamente su nodi multipli). Un pacchetto inviato ad un indirizzo anycast è consegnato a soltanto una di queste interfacce (tipicamente la più vicina). \\ Progettato per fornire ridondanza e bilanciamento del carico quando lo stesso servizio è fornito da host o router multipli, come nel caso del DNS. \\ Sappiamo che i nomi in internet hanno una gerarchia ed abbiamo una corrispondente gerarchia di server. Il root server è sempre lo stesso, è un server solo. Servirebbe l'indirizzo dei server, una lista di server; in questo caso si può utilizzare un indirizzo anycast, virtualmente assegnato a tutte le copie del server. Delego alla rete il compito di scegliere il root DNS server giusto. Quindi, il DNS è una routing functionality. \\ Si deve far attraversare ad un pacchetto un autonomous system, se c'è un indirizzo anycast associato con quell'autonomous system, allora sicuramente il pacchetto eventualmente sarà consegnato ad uno dei border router dell'AS. E' implementato come una funzionalità di routing. Per ottenere questo comportamento basta che nella routing table ci sia un'entrata per quello specifico indirizzo. Se è IPv4, significa che si avrà una entry /32 nella tabella di routing: se l'indirizzo di destinazione matcha esattamente questo indirizzo, allora il prossimo hop è questo. Se c'è un'entrata IPv6 /128, questa entrata sarà usata solo come la prima: è il prefisso più lungo che puoi avere. Con questo meccanismo si può quindi andare a stabilire il path che verrà seguito dai pacchetti che fanno match con tale indirizzo. Non c'è bisogno, quindi, di identificare un indirizzo come anycast: un indirizzo anycast è più una funzionalità di routing che un tipo di indirizzo (è l'IP routing che decide dove spedire il pacchetto). Un indirizzo anycast non può essere usato con TCP, dal momento che non c'è controllo sulla consegna, funziona bene con UDP. Il sender quindi, non ha controllo sull'interfaccia al quale il pacchetto sarà spedito. \\ L'indirizzo anycast subnet-router è un indirizzo anycast richiesto:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/subnet anycast.png}
+\caption{Subnet Anycast Address}
+\end{figure}
+
+E' associato a tutti i router su una specifica sottorete. Non conosco l'interface ID, altrimenti non sarebbe anycast. Si utilizza ad esempio in Mobile IP.
+
+\subsubsection{Indirizzi Multicast}
+Quando un pacchetto è inviato a un indirizzo multicast, tutti i membri del gruppo multicast processano il pacchetto. Un nodo può appartenere a più di un gruppo multicast.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{figures/multicast address.png}
+\caption{Multicast Address}
+\end{figure}
+
+I primi 8 bit sono tutti a 1, poi ci sono 4 bit di flag e 4 bit che indicano lo scope. Non si ha un Interface ID, ma abbiamo un identificativo per un gruppo di interfacce.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.4]{figures/indirizzi tipici multicast.png}
+\caption{Indirizzi tipici Multicast}
+\end{figure}
+
+\section{ICMPv6 e Autoconfigurazione}
+In questa sezione ci sono i veri cambiamenti rispetto ad IPv4: molti protocolli che prima erano "satelliti" ora sono parte di IPv6. Un esempio è ARP: non è una traduzione, ma un'operazione di discovery, di lookup. 
+
+\subsection{ICMPv6} 
+\paragraph{Internet Control Message Protocol v6}
+Basato sulla versione ICMP di IPv4, con le dovute modifiche per adattarsi al nuovo protocollo. Fornisce funzioni diagnostiche e di gestione dell'errore.\\
+I messaggi ICMPv6 sono incapsulati in pacchetti IPv6 con il valore \textit{Next Header 58}. Questa nuova versione fornisce anche una nuova funzionalità denominata \textit{Neighbour Discovery Protocol}, che offre procedure per:
+\begin{itemize}
+    \item Trovare i router.
+    \item Risoluzione di indirizzi a livello collegamento (\textit{livello 2}).
+    \item Rilevare possibili indirizzi duplicati.
+\end{itemize}
+Nella versione IPv4 si poteva tener traccia della raggiungibilità dei vicini solo grazie ad ARP.\\ Il protocollo consiste in un set di operazioni:
+\begin{itemize}
+    \item Router Discovery
+    \item Address Resolution
+    \item Duplicate Address Detection
+\end{itemize}
+
+\subsubsection{Formato del messaggio}
+Come già accennato, questo protocollo genera messaggi che sono trasmessi come payload IPv6 con extension number 58, che identifica ICMPv6.
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.4]{figures/ICMP format.png}
+\caption{Formato messaggio ICMP}
+\end{figure}
+Nel messaggio si possono riconoscere i seguenti campi:
+\begin{itemize}
+    \item \textbf{Type \& Code}:
+        \begin{itemize}
+            \item Type = 1, Code = 0: Destinazione non raggiungibile. Quindi, quando un router non ha una route per una certa destinazione, manda indietro al trasmettitore questo ICMPv6.
+            \item Type = 2: Pacchetto troppo grande. Questo può servire in un protocollo per scoprire il minimo MTU in un path; viene quindi usato nella fase di path MTU discovery e nel body del messaggio viene inserito l'effettivo MTU.
+            \item Type = 3: Time exceeded. Viene usato quando scade l'hop counter del pacchetto
+            \item Type = 4: Parameter problem. Usato quando un router rileva problemi nel formato del pacchetto.
+        \end{itemize}{}
+    \item \textbf{Checksum}: Utilizzato per controllare se il messaggio è corrotto. Questi 2 byte sono necessari, dato che IPv6 non ha nessun meccanismo di checksum. ICMPv6 lavora ad un livello più alto di IPv6, quindi ha bisogno del checksum per controllare che il messaggio non sia corrotto.
+    \item \textbf{Corpo del messaggio}: Qua ci va l'informazione vera e propria che trasporta il messaggio. 
+\end{itemize}
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{figures/tipi ICMP.png}
+\caption{Tipi di messaggio ICMP}
+\end{figure}
+
+\subsubsection{Neighbour Discovery protocol}
+E' una procedura definita interamente all'interno di ICMPv6 in modo da soddisfare varie feature:
+\begin{itemize}
+    \item Address Resolution: è un set di funzioni che servono a risolvere un indirizzo IP in un indirizzo layer 2. Sostanzialmente possono verificarsi 2 casi:
+    \item Stateless Address Autoconfiguration (SLAAC)
+    \item Router Discovery (RD)
+    \item Neighbour Unreachability Detection (NUD): per scoprire se qualche vicino non è più raggiungibile
+    \item Duplicate Address Detection (DAD)
+    \item Redirection
+\end{itemize}
+Alcune di queste funzionalità sono disponibili anche per IPv4, ma sono implementate in protocolli differenti da IP e ICMP: ad esempio address resolution implementata con ARP. Altre funzionalità, invece, sono nuove come ad esempio SLAAC ed RD.
 
 
+\subsubsection{Router Discovery}
+Periodicamente, i router inviano dei messaggi di \textit{Router Advertisement} all'indi-\\rizzo \textit{multicast all nodes} (codice FF02::1). Questi messaggi contengono le informazioni necessarie ad un host che si vuole unire alla rete per autoconfigurarsi sulla stessa. I RA possono essere richiesti esplicitamente da un nodo tramite un messaggio \textit{Router Solicitation}, sempre all'indirizzo multicast (codice FF02::2).
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{figures/router discovery.png}
+\caption{Messaggio router discovery}
+\end{figure}
+Si vanno ora ad analizzare alcuni campi all'interno del messaggio di Router Advertisement:
+\begin{itemize}
+    \item Type = 134, Code = 0
+    \item Cur Ho Limit: c'è un valore di default per hop limit. Non si può, però, usare un hop limit minore del diametro della nostra rete altrimenti, ovviamente, i pacchetti non arriverebbero al confine. Mentre, non ci sono motivi per impostare un hop limit maggiore del diametro della nostra rete.
+    \item Time: parametro di configurazione.
+    \item M flag (1 bit): 
+        \begin{itemize}
+            \item 0: configurazione stateless: in cui si indica che ci deve essere una configurazione autonoma.
+            \item 1: configutazione stateful (DHCP): in questo caso non si può scegliere da soli il proprio indirizzo. Si utilizza il servizio DHCP.
+        \end{itemize}
+    \item Prf flag (2 bits): Preferenza riguardo al default router. (Gateway in IPv4)
+    \item Options
+        \begin{itemize}
+            \item Source link-layer address
+            \item MTU
+            \item Prefix information
+        \end{itemize}
+    \item Prefix information option: informazione relativa al prefix, ce n'è una per ogni prefix. Type e length specificano il tipo e la lunghezza del prefisso. Prefix length è equivalente alla mask in IPv4.
+    \item L flag: on-link determination
+    \item A flag: se settato, questo flag indica che deve essere eseguito il Duplicate Address Detenction
+    \item Address lifetime
+\end{itemize}
 
+\subsection{Configurazione dell'indirizzo}
+La configurazione dell'indirizzo può essere fatta in 2 modi, come già accennato precedentemente:
+\begin{itemize}
+    \item \textbf{Stateful}: DHCPv6
+    \item \textbf{Stateless}: Senza nessuna configurazione manuale da parte dell'host. \\ L'interface ID è generato dall'indirizzo MAC (o scelto randomicamente). Il prefisso è imparato dal messaggio di Routing Advertisement.
+\end{itemize}
+L'indirizzo passa attraverso differenti stati:
+\begin{itemize}
+    \item \textbf{Tentative Address (provvisorio):} L'unicità in un link deve essere verificata: un'interfaccia scarta pacchetti ricevuti che siano indirizzati ad un indirizzo provvisorio, ma accetta pacchetti di Neighbor Discovery.
+    \item \textbf{Preferred Address:} l'utilizzo da parte di protocolli di più alto livello è illimitato.
+    \item \textbf{Deprecated Address:} l'utilizzo di questo tipo di indirizzo è sconsigliato ma non proibito.
+    \item \textbf{Valid Address:} è un indirizzo che può essere Preferred o Deprecated.
+\end{itemize}
+Questo tipo di lifetime viene definito in modo da dare il tempo di controllare che non ci siano collisioni sullo stesso link.
+
+\newpage
+\section{6LoWPAN}
+Protocollo progettato per trasportare pacchetti IPv6 nello standard 802.15.4 (\textit{LoW Power Area Networks}) definendo uno strato posto a metà fra il ilvello 2 ed il livello 3 del modello ISO/OSI.
 \end{document}
