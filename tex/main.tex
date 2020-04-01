@@ -2,6 +2,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{float}
 \usepackage{graphicx}
+\usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm]{geometry}
 
 \title{Appunti Advanced Networking \\ and Wireless Systems}
 \author{}
@@ -169,18 +170,10 @@ Se un link non è in grado di garantire una MTU di 1280 bytes, allora non potrà
     \item \textbf{Anycast}: assegnato a interfacce multiple (tipicamente su nodi multipli). Un pacchetto inviato ad un indirizzo anycast è consegnato a soltanto una di queste interfacce (tipicamente la più vicina).
 \end{itemize}
 
-Non è presente il broadcast in IPv6. Il broadcast veniva usato in IPv4 con DHCP ad esempio. Il Broadcasting in IPv4 è limitato alla stessa subnet (rete locale, ovvero il router non manda verso l’esterno i pacchetti broadcast). \\
-In IPv6 si utilizzano di default dei Multicast address per identificare il servizio necessario. Questo indirizzo sarà associato al server che svolge quel servizio, quindi tutti i server DHCP avranno lo stesso indirizzo multicast IPv6. In questo modo il pacchetto viene ricevuto solo dal server DHCP e tutti gli altri nodi non interessati (dato che non forniscono quel servizio) non riceveranno il messaggio, non dovranno quindi processarlo per poi scartarlo (come in IPv4).\\
-Un indirizzo IPv6 è assegnato ad un’interfaccia, almeno un indirizzo unicast per interfaccia di un nodo. Una singola interfaccia può essere assegnata a più indirizzi IPv6 di ogni tipo. 
-Gli indirizzi IPv6 hanno uno “scope” (codificato come parte dell’indirizzo): lo “scope” è un intervallo topologico tra cui gli indirizzi potrebbero essere usati come identificatori unici. E’ una parte dell’indirizzo che indica la parte della rete dove l’indirizzo può essere usato come unico.
-Ci sono scope globali e non globali.\\
-Non è più presente ARP, il servizio viene fornito direttamente da IPv6. Scope è un sottoinsieme di tutta la network codificata con un indirizzo.
-In IPv4 c’è solo uno scopo, che è il global-scope, mentre in IPv6 c’è sia il global-scope che local-scope.
+Non è presente il broadcast in IPv6. Il broadcast veniva usato in IPv4 con DHCP ad esempio. Il Broadcasting in IPv4 è limitato alla stessa subnet (rete locale, ovvero il router non manda verso l’esterno i pacchetti broadcast). \\ In IPv6 si utilizzano di default dei Multicast address per identificare il servizio necessario. Questo indirizzo sarà associato al server che svolge quel servizio, quindi tutti i server DHCP avranno lo stesso indirizzo multicast IPv6. In questo modo il pacchetto viene ricevuto solo dal server DHCP e tutti gli altri nodi non interessati (dato che non forniscono quel servizio) non riceveranno il messaggio, non dovranno quindi processarlo per poi scartarlo (come in IPv4).\\ Un indirizzo IPv6 è assegnato ad un’interfaccia, almeno un indirizzo unicast per interfaccia di un nodo. Una singola interfaccia può essere assegnata a più indirizzi IPv6 di ogni tipo. \\ Gli indirizzi IPv6 hanno uno “scope” (codificato come parte dell’indirizzo): lo “scope” è un intervallo topologico tra cui gli indirizzi potrebbero essere usati come identificatori unici. E’ una parte dell’indirizzo che indica la parte della rete dove l’indirizzo può essere usato come unico. Ci sono scope globali e non globali.\\ Non è più presente ARP, il servizio viene fornito direttamente da IPv6. Scope è un sottoinsieme di tutta la network codificata con un indirizzo. In IPv4 c’è solo uno scopo, che è il global-scope, mentre in IPv6 c’è sia il global-scope che local-scope.
 
 \subsection{Link IPv6}
-Identificato da un set di interfacce che possono comunicare direttamente tra di loro (hop singolo). Un link IPv6 è un’astrazione, insieme di interfacce che possono comunicare direttamente senza l’intermezzo di un router. 
-Il protocollo IP introduce un modello per modellare la rete. Un link che pensiamo come ad esempio un filo, è in realtà un'astrazione di ciò che il sottostante link-layer protocol permette di fare. Se, per esempio, si dice che un link è broadcast, significa che la sottostante link-layer technology mette a disposizione di IP la comunicazione broadcast (non si parla quindi del mezzo). \\
-Ethernet supporta broadcast, la tecnologia però, non lo è. È connessa a degli switch in unicast (point-to-point).
+Identificato da un set di interfacce che possono comunicare direttamente tra di loro (hop singolo). Un link IPv6 è un’astrazione, insieme di interfacce che possono comunicare direttamente senza l’intermezzo di un router. Il protocollo IP introduce un modello per modellare la rete. Un link che pensiamo come ad esempio un filo, è in realtà un'astrazione di ciò che il sottostante link-layer protocol permette di fare. Se, per esempio, si dice che un link è broadcast, significa che la sottostante link-layer technology mette a disposizione di IP la comunicazione broadcast (non si parla quindi del mezzo). \\ Ethernet supporta broadcast, la tecnologia però, non lo è. È connessa a degli switch in unicast (point-to-point).
 Tipiche assunzioni riguardo ad un link:
 \begin{itemize}
     \item Stabile (nel tempo)
@@ -192,8 +185,7 @@ Implicazioni:
     \item I prefissi network possono essere usati per determinare se un'interfaccia è attaccata ad un certo link.
     \item La rilevazione di indirizzi duplicati può essere facilmente indirizzata
 \end{itemize}{}
-Se non vale la proprietà transitiva, non si può usare la on-link determination. Quindi, il discorso è che le funzionalità che otteniamo ad un determinato livello (in questo caso 3, IPv6) dipendono da cosa ottieni dai livelli sottostanti.\\
-La transitività riguarda i link unicast, non broadcast. Se un link è broadcast puoi far girare una procedura (duplicate address detection - stateless address autoconfiguration) per controllare se ci sono altri nodi sullo stesso link che utilizzano lo stesso indirizzo che si vuole assegnare.
+Se non vale la proprietà transitiva, non si può usare la on-link determination. Quindi, il discorso è che le funzionalità che otteniamo ad un determinato livello (in questo caso 3, IPv6) dipendono da cosa ottieni dai livelli sottostanti.\\ La transitività riguarda i link unicast, non broadcast. Se un link è broadcast puoi far girare una procedura (duplicate address detection - stateless address autoconfiguration) per controllare se ci sono altri nodi sullo stesso link che utilizzano lo stesso indirizzo che si vuole assegnare.
 
 \subsection{Address Scope}
 \begin{itemize}
@@ -346,7 +338,7 @@ Alcune di queste funzionalità sono disponibili anche per IPv4, ma sono implemen
 
 
 \subsubsection{Router Discovery}
-Periodicamente, i router inviano dei messaggi di \textit{Router Advertisement} all'indi-\\rizzo \textit{multicast all nodes} (codice FF02::1). Questi messaggi contengono le informazioni necessarie ad un host che si vuole unire alla rete per autoconfigurarsi sulla stessa. I RA possono essere richiesti esplicitamente da un nodo tramite un messaggio \textit{Router Solicitation}, sempre all'indirizzo multicast (codice FF02::2).
+Periodicamente, i router inviano dei messaggi di \textit{Router Advertisement} all'indirizzo \textit{multicast all nodes} (codice FF02::1). Questi messaggi contengono le informazioni necessarie ad un host che si vuole unire alla rete per autoconfigurarsi sulla stessa. I RA possono essere richiesti esplicitamente da un nodo tramite un messaggio \textit{Router Solicitation}, sempre all'indirizzo multicast (codice FF02::2).
 \begin{figure}[H]
 \centering
 \includegraphics[scale=0.3]{figures/router discovery.png}
@@ -388,9 +380,40 @@ L'indirizzo passa attraverso differenti stati:
     \item \textbf{Deprecated Address:} l'utilizzo di questo tipo di indirizzo è sconsigliato ma non proibito.
     \item \textbf{Valid Address:} è un indirizzo che può essere Preferred o Deprecated.
 \end{itemize}
-Questo tipo di lifetime viene definito in modo da dare il tempo di controllare che non ci siano collisioni sullo stesso link.
+Questo tipo di lifetime viene definito in modo da dare il tempo di controllare che non ci siano collisioni sullo stesso link. \\ Si vanno quindi a definire gli step per configurare un indirizzo IPv6:
+\begin{itemize}
+    \item Si genera un indirizzo link-local appendendo l'identificatore di interfaccia al prefisso del link local \textit{FE80::/10}. L'indirizzo link-local è \textit{tentative}.
+    \item Si manda un messaggio Neighbor Solicitation per controllare il Duplicate Address Detection. L'indirizzo link-local diventa \textit{preferred}.
+    \item Si manda un messaggio Router Solicitation all'indirizzo "all-routers".
+    \item Per ogni prefisso nei Router Advertisement con il flag A settato, viene generato un indirizzo. L'indirizzo è \textit{tentative}, dovrebbe essere utilizzato il Duplicate Address Detection.
+    \item L'indirizzo diventa \textit{preferred} fino a che non finisce il lifetime.
+\end{itemize}
 
 \newpage
 \section{6LoWPAN}
-Protocollo progettato per trasportare pacchetti IPv6 nello standard 802.15.4 (\textit{LoW Power Area Networks}) definendo uno strato posto a metà fra il ilvello 2 ed il livello 3 del modello ISO/OSI.
+\paragraph{IPv6 over Low-power Wireless Personal Area Networks}
+Protocollo progettato per trasportare pacchetti IPv6 nello standard 802.15.4 (\textit{LoW Power Area Networks}) definendo uno strato posto a metà fra il livello 2 ed il livello 3 del modello ISO/OSI.
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{figures/6LoWPAN stack.png}
+\caption{6LoWPAN protocol stack}
+\end{figure}
+
+\subsection{Architettura 6LoWPAN}
+Tipi di nodi in 6LoWPAN:
+\begin{itemize}
+    \item Hosts 
+    \item Routers (6LR)
+    \item Border Routers (6LBR): hanno almeno un link attaccato ad una interfaccia fuori dalla 6LoWPAN. Possono essere link punto punto oppure broadcast.
+\end{itemize}
+I 6LoWPAN sono network detti "stub", ovvero che un tipo di network che non fa passare traffico esterno attraverso essa, tutto il traffico viene generato internamente, a meno che non sia traffico esterno diretto ad un nodo della rete. Le sessioni possono essere iniziate solo da una macchina della rete. \\ Per quanto riguarda la topologia:
+\begin{itemize}
+    \item Semplice: in cui è presente un solo Border Router.
+    \item Extended: in cui sono presenti multipli Border Router. Devono essere connessi allo stesso link fuori dalla 6LoWPAN ed il link deve essere broadcast. Devono quindi poter comunicare fra di loro.
+    \item Ad-hoc: non sono presenti Border Router, quindi tutto il traffico è intra-6LoWPAN.
+\end{itemize}
+
+\subsection{Multi-hop forwarding in LLNs}
+Il multi-hop forwarding si può implementare su layer 2 o 3. Nell'implementazione a layer-3 i router sono normali routerIP, se il multi-hop è implementato a layer-2, questo è traparente a 6LoWPAN che quindi non se ne deve curare. \\ Si può 
+
 \end{document}
