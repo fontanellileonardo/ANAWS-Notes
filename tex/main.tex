@@ -677,7 +677,7 @@ forse si possono saltare?
 \newpage
 \section{CoAP}
 Constrained Application Protocol, è un protocollo web generico orientato a requisiti specifici (esempio quelli delle LLNs). Il suo scopo principale è quello di realizzare un protocollo applicazione (L5) per servizi web (in comune con HTTP) ma ottimizzato per le applicazioni \textit{Machine-to-Machine (M2M)}.\\
-Il livello CoAP è intermedio fra UDP e il livello 5 (applicazione) composto da due sottolivelli: uno gestisce le richieste/risposte, l'altro fornisce il supporto allo scambio di messaggi asincroni.\\
+Il livello CoAP è intermedio fra UDP e il livello 5 (applicazione) composto da due sottolivelli: uno gestisce le richieste/risposte, l'altro fornisce il supporto allo scambio di messaggi asincroni. I messaggi asincroni servono per poter inviare un messaggio al client anche quando questo non ha effettuato alcuna richiesta (non è possibile in TCP).\\
 \begin{figure}[H]
 \centering
 \includegraphics[scale=0.4]{figures/coaplayer.jpg}
@@ -811,7 +811,7 @@ In conclusione, GPS non è realizzabile per davvero poiché introduce delle assu
 
 \subsubsection{WFQ - Weighted Fair Queueing}
 Algoritmo conservativo che simula il comportamento di GPS mandando i pacchetti in uscita nello stesso ordine, ma con tempistiche diverse. Anche questo algoritmo non è realizzabile praticamente.\\
-Trasmette pacchetti scegliendo, tra quelli in coda all'istante t, quello che completerebbe il servizio per primo se il sistema fosse GPS e nessun altro pacchetto arriverebbe dopo l'istante t. In altre parole, sappiamo che in GPS i pacchetti possono essere serviti contemporaneamente mentre in WFQ no. Quindi l'algoritmo servirà i pacchetti singolarmente ma nello stesso ordine di GPS. Questo significa che l'output sarà il solito (nello stesso ordine) ma il tempo a cui usciranno i vari pacchetti sarà diverso.
+Trasmette pacchetti scegliendo, tra quelli in coda all'istante t, quello che completerebbe il servizio per primo se il sistema fosse GPS e nessun altro pacchetto arrivasse dopo l'istante t. In altre parole, sappiamo che in GPS i pacchetti possono essere serviti contemporaneamente mentre in WFQ no. Quindi l'algoritmo servirà i pacchetti singolarmente ma nello stesso ordine di GPS. Questo significa che l'output sarà il solito (nello stesso ordine) ma il tempo a cui usciranno i vari pacchetti sarà diverso.
 \paragraph{Esempio} Supponiamo che un pacchetto \(p\) sia in servizio presso un sistema GPS ed uno WFQ. Ad un istante generico \(t\) arriva un nuovo pacchetto \(p'\). Nel caso di GPS il pacchetto inizia subito il servizio (simultaneamente a \(p\) ed uscirà all'istante \(t+n\). Con WFQ il pacchetto inizierà il servizio non appena terminerà quello di \(p\) ed uscirà ad un istante \(t+m\) con \( m>n\). L'ordine di uscita sarà sempre \(p, p'\) ma il tempo a cui escono i due pacchetti sarà diverso.\\ \\
 Si può dire quindi che WFQ approssima il comportamento di GPS, ma fino a che punto? La differenza tra i due algoritmi è data dalla differenza dei tempi d'uscita per un singolo pacchetto, ed è limitata dalla MTU (Maximum Transfer Unit):
 \[ out\textsubscript{WFQ} - out\textsubscript{GPS} \leq MTU \]
@@ -1077,8 +1077,104 @@ Non è detto, però, che tutti i vicini siano interessati a tale binding, legato
 
 \subparagraph{LSP setup control} I bindings FEC-to-label sono distribuiti solo con l'intento di stabilire cammini label-switched. Si creano quindi 2 differenti modalità che rispondono sostanzialmente a due domande: quale FEC utilizzare per avvertire di un binding? La scelta di una FEC determina quale LSP sono costruiti. Quando avvertire questi binding? Questo determina chi ha il controllo sul setup della LSP.
 
-\subsubsection{Ordered Control} Con questa modalità, un LSR effettua un binding tra FEC e label solamente se vale una delle seguenti condizioni:
+\subparagraph{Ordered Control} Con questa modalità, un LSR effettua un binding tra FEC e label solamente se è un egress router per quella FEC e ha già ricevuto un'informazione di binding per quella FEC. \\
+Con la \textbf{Unsolicited Downstream}, l'approccio è il seguente: 
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{figures/ordered control unsolicited downstream.png}
+    \caption{Ordered Control - Unsolicited Downstream}
+\end{figure}
+\begin{itemize}
+    \item Il setup del cammino parte dall'egress router che costituirà l'ultimo hop di LSP.
+    \item Questo router inizia a fare un broadcasting di messaggi di binding ai suoi vicini per un certo FEC, seguendo un approccio unsolicited downstream.
+    \item Ogni altro router, appena ricevuto un messaggio di binding da un router downstream, utilizza la routing table L3 per scegliere quale binding usare e quale router selezionare come hop successivo. Una volta completata la scelta, genere la NHLFE e inizia a fare broadcasting del suo binding ai suoi vicini.
+    \item Il processo prosegue fino al router ingress da cui il traffico sarà "iniettato" e il cammino viene così formato.
+\end{itemize}
+Con la \textbf{Downstream On-Demand}, si ha il seguente approccio:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{figures/ordered control downstream on-demand.png}
+    \caption{Ordered Control - Downstream On-demand}
+\end{figure}
+\begin{itemize}
+    \item Il setup del cammino inizia dal router ingress da cui il traffico è iniettato, appena ha bisogno di scoprire il cammino per un dato FEC.
+    \item Utilizzando le tabelle di routing L3, determina il prossimo hop per quello specifico FEC; poi al prossimo hop che binding vuole usare per quel FEC, seguendo un approccio downstream on-demand.
+    \item Quando riceve la richiesta con le informazioni di binging dal router upstream, il router downstream, a sua volta, ha bisogno di trovare un cammino per il suddetto FEC. Quindi, a sua volta, determina il prossimo hop dalla sua tabella di routing L3 e gli chiede che binding vuole utilizzare per questo FEC.
+    \item Il processo è ripetuto per tutti i router fino a raggiungere il router egress, che costituirà l'hop finale di LSP. Questo router sa come raggiungere la destinazione finale, seleziona un label per la FEC e comunica il binding al router upstream che lo ha richiesto precedentemente.
+    \item A questo punto l'ultimo router, a sua volta, decide un binding e lo comunica al router upstream e così via, fino al router iniziale: il cammino è finalmente costruito.
+\end{itemize}
+Si osserva, quindi, come l'Ordered Control associato all'Unsolicited Downstream: generi un reverse tree e fornisca aggregazione. \\ Mentre, l'Ordered Control associato ad un Downstream On Demand generi un LSP per ogni ingress router.
 
+\subparagraph{Indipendent Control}
+In questo caso, c'è soltanto il metodo \textbf{Unsolicited Downstream}:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.3]{figures/indipendent control.png}
+    \caption{Indipendent Control - Unsolicited Downstream}
+\end{figure}
+\begin{itemize}
+    \item Ogni router crea e distribuisce i suoi binding indipendentemente.
+    \item All'inizio, quando non c'è ancora nessun binding, un FEC è associato ad un'azione POP e l'indirizzo del prossimo hop, è l'indirizzo di loopback. In questo modo, il label MPLS di un pacchetto è rimosso e il pacchetto è passato al livello 3.
+    \item Quando il router downstream decide quale binding usare e lo comunica al router upstream, quest'ultimo cambia l'azione POP con una SWAP del label deciso dal router downstream e setta il downstream come prossimo hop.
+\end{itemize}
+Dovendo confrontare Indipendent Control ed Ordered Control, possiamo asserire che il secondo fornisce una prevenzione dai loops, ma ha come svantaggio la necessità che i bindings si propaghino per tutta la rete prima che si possa stabilire un LSP. 
+\\
+Si aggiunge anche una nota che riguarda il modo in cui i router vengono a sapere che sono il penultimo hop e che quindi possono effettuare il PHP. L'ultimo router lo dice esplicitamente, questo è fatto imponendo all'ultimo router di utilizzare un label invertito per il binding. Questo label numero 3, detto \textit{null label}, ogni volta che un upstream router riceve un binding per il label 3, significa che il prossimo router è l'ultimo nell'LSP. 
+
+\subparagraph{Aggregazione (MP2P)} È possibile trattare l'unione di più FEC a sua volta come una FEC, ciò risulta utile quando dei LSP condividono lunghi tratti di percorso. In tal caso le N FEC sono dette aggregabili e su di esse si può agire in 3 modi:
+\begin{itemize}
+    \item Aggregarle in un'unica FEC.
+    \item Aggregarle in un insieme di M FEC (con M $<$ N).
+    \item Non aggregarle
+\end{itemize}
+Se si effettua aggregazione, non si hanno solo risvolti positivi nel processo di forwarding, che si troverà a dover operare con tabelle di dimensioni minori, ma si otterrà anche un ulteriore alleggerimento del processo di distribuzione dei label. Si ha quindi la possibilità di scegliere un livello di granularità compreso fra 2 estremi: \textit{coarset granularity} (aggregazione massima) e \textit{finest granularity} (nessuna aggregazione). Si osservi che: se si utilizza l'ordered control, ogni LSR deve usare la granularità del next hop e se si utilizza l'indipendent control, ogni LSR può usare la granularità che desidera.
+
+\subsubsection{Label Distribution Protocol (LDP)} 
+Progettato specificatamente per la distribuzione dei label. Si basa su IGP (Interior Gateway Protocol, il protocollo utilizzato all'interno di un sistema autonomo, ad esempio OSPF), per tutte le decisioni relative al routing. LSR A che riceve un mapping per il label L per il FEC F, dal suo peer LDP; LSR B utilizzerà il label L per il forwarding se e solo se B è bel cammino minimo IGB per la destinazione F dal punto di vista di A. \\ Maggiori funzionalità:
+\begin{itemize}
+    \item Discovery dei vicini (UDP)
+    \item Creazione e mantenimento della sessione (TCP)
+    \item Advertisement del label
+    \item Notifiche
+\end{itemize}
+
+\subsection{}{RSVP per la distribuzione dei label} Resource Reservation Protocol. È stato definito per QoS, ma è stato esteso per la distribuzione dei label. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{figures/RSVP label distribution.png}
+    \caption{RSVP for label distribution}
+\end{figure}
+Ci sono 2 tipi di messaggi: PATH message e Reservation (RESV) message. I messaggi PATH viaggiano dall'upstream al downstream (from HEAD-END a TAIL-END) in un dominio e propagano l'info riguardante la FEC che si vuole stabilire. I messaggi RESV viaggiano poi all'indietro sullo stesso cammino, seguiti da messaggi di path che forniscono informazioni riguardo i binding dei label. \\ Il protocollo garantisce che RESV seguano esattamente il cammino dei PATH.
+
+\subsection{LSP setup control} Quale FEC si utilizza per fare l'advertising di un binding? \\ Quando si fa l'advertising del binding?
+\begin{itemize}
+    \item \textbf{Ordered control:} Egress (o ingress) LSR hanno il controllo su quale LSP devono fare setup. Il comportamento di default è che la FEC mappi l'indirizzo edge LSR loopback.
+    \item \textbf{Indipendent control:} Tutti i router fanno l'advertising della FEC indipendentemente (ma devono farlo in una modalità consistente). Il comportamento di default è che si mappi ogni FEC per tutti i prefissi della tabella di routing.
+\end{itemize}
+Si considera adesso una destinazione del network nella tabella di routing IP (1 network prefix), questo ha una corrispondenza stretta con una certa FEC. In tutti i network si va a definire una corrispondenza tra una FEC e un edge router. Se ho un dominio di transito (questo funziona per pacchetti entranti nel network e trova un cammino all'interno di questo stesso network in modo da trovare un'uscita da quest'ultimo), dato che il numero di router (egress e ingress) sono tipicamente un subset ridotto rispetto a tutti gli altri, l'unica informazione di cui abbiamo bisogno è di conoscere il cammino da usare per raggiungere l'edge router in modo da uscire dal dominio. \\ Invece di avere una entry per ogni network, potremmo avere, all'inizio, una entry per ogni router edge. \\ Se ad esempio consideriamo OSPF, ogni nodo conosce l'ID del router edge e conosce il modo di raggiungerlo. Se il primo router (R1), quando arriva un pacchetto, con indirizzo di destinazione 10.1.1.1, utilizza il database OSPF e sa che questo è esterno a questo sistema autonomo, controlla quale sia l'edge router da usare per questo indirizzo. Da qui, la corrispondenza tra LSP ed edge router. \\ Questo è un pezzo di informazione che è condiviso tra tutti i router, si aggregga tutto il traffico che sta andando all'esterno del dominio attraverso uno specifico LSR. In ogni caso, tutti i pacchetti seguono esattamente lo stesso cammino che seguirebbero con IP. Non stiamo cambiando come i cammini sono calcolati e non c'è nessun controllo sul cammino.
+
+\subsection{Supporto MPLS per DiffServ} MPLS è una soluzione per fare il forwarding dei pacchetti IP alla loro destinazione, questo è per prendere decisioni riguardo il prossimo hop. \\ DiffServ è un'architettura network e soluzione di molti problemi, indipendentemente dalle funzioni di forwarding. MPLS è relativo al data plain, ma anche il per hop behaviour è relativo al data plain. MPLS ha il suo header, QoS utilizza quello di IP (campo DSCP per scegliere PHB). Vorremmo un sistema per evitare di doverlo consultare. \\ Nell'header MPLS, ci sono 3 bit per il traffic class (TC), quindi si va ad utilizzare questo campo, se ci sono soltanto 8 PHB nel dominio (si codificano i 6 bit di DSCP in questi 3). \\ Che succede se ho più di 8 PHB? Si utilizza lo stesso label: il label indica il prossimo hop e TC come gestire il pacchetto. Quindi si configurano 2 casi:
+\begin{itemize}
+    \item Caso fortunato: PHB $<$ 8: Posso utilizzare TC. Quando un pacchetto arriva ad un router, si fa il lookup del label per identificare il prossimo hop, si controlla TC per capire il PHB. Per esempio, quando il label $=$ 001, il router sa che è assicurata la classe di forwarding 1 e quindi tratterà il pacchetto di conseguenza.
+    \item Se abbiamo più di 8 PHB, dobbiamo usare i label anche per distinguere i PHB
+\end{itemize}
+Al fine di supportare DiffServ, è necessario che gli LSR possano desumere il PHB da applicare ad un determinato pacchetto appartenente ad un BA (Behaviour Aggregate) esaminando il solo header. \\ Esistono 2 modalità, il cui impiego è condizionato dal numero di PHB supportati dalla rete: 
+\begin{itemize}
+    \item \textbf{E-LSP:} il PHB viene desunto osservando il solo campo EXP (CoS) nello shim header. Non richiede modifiche alle operazioni di signaling.
+    \item \textbf{L-LSP:} il PHB viene desunto osservando i campi label ed eventualmente EXP dello shim header. Richiede modifiche alle operazioni di signaling.
+\end{itemize}
+\paragraph{E-LSP} Qualora siano implementati nel dominio DiffServ/MPLS, solamente 8 PHB, si può utilizzare la modalità \textit{Experimental LSP}. Infatti, nell'architettura DiffServ, il PHB da applicare ad un determinato BA viene deciso ad un router DiffServ mediante l'analisi DSCP all'interno del campo DS: esso è un valore a 6 bit. \\ In tale implementazione, invece, si riservano solamente 3 bit (del campo Exp) avendo quindi uno spazio di possibili PHB ridotto. Quindi, potrebbero non bastare se i PHB da implementare sono più di 8. \\ Il pregio di tale soluzione risiede nel fatto che non sono necessari ulteriori meccanismi di signaling: il protocollo di Label Distribution lavora come di consueto; durante le operazioni di forwarding, gli LSR desumono all'interno dello shim header: il PHB da applicare ad un pacchetto consultando il campo Exp e dove effettuare il forwarding mediante il campo label. \\ Si necessita solamente di una preventiva configurazione: così come i PHB venivano mappati su un DSCP, adesso vengono mappati sul campo Exp.
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{figures/exp lsp.png}
+    \caption{EXP-Inferred LSP}
+\end{figure}
+\paragraph{L-LSP} Qualora siano implementati nel dominio DiffServ/MPLS più di 8 PHB, si può utilizzare la modalità \textit{Label LSP}. Il PHB da applicare viene dunque inferito dal label del pacchetto, si necessita quindi di un enhancement del meccanismo di label distribution. Il protocollo LDP deve essere esteso affinché i messaggi che richiedano o comunichino il binding per una determinata FEC, includano anche le informazioni sul PHB ad essa associato. \\ Per quanto riguarda il gruppo PHB AF, i pacchetti che condividono un PHB comune vengono riferiti come appartenenti alla medesima PHB scheduling class: essi percorreranno il medesimo LSP in MPLS e la relativa drop precedence è indicata all'interno dei 3 bit del campo Exp. Questo nel frame mode, mentre nel cell mode si utilizza il campo CLP dell'header della cella. \\ Per tutti gli altri PHB, ogni LSP trasporterà pacchetti appartenenti ad un singolo PHB. In tali casi, i bit del campo Exp non sono utilizzati. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{figures/labelonly lsp.png}
+    \caption{Label-Only-Inferred LSP}
+\end{figure}
 
 \newpage
 \section{Traffic Engineering}
@@ -1108,4 +1204,36 @@ E' una versione dell'algoritmo di Dijkstra (SPF) estesa per il TE in cui abbiamo
 \subsubsection{RSVP-TE}
 RSVP viene esteso per supportare LSP dopo che è stato ottenuto il grafo dei percorsi minimi tramite CSPF.
 
+\newpage
+\section{BGP - Border Gateway Protocol}
+L'architettura attuale di Internet prevede diverse autorità che controllano differenti porzioni della rete in modo indipendente (Autonomous Systems). Data questa struttura complessa con differenti blocchi autonomi, il nostro obiettivo è, dato un pacchetto con indirizzo di destinazione, trovare un metodo per inviare quel pacchetto al dominio (AS) che contiene l'indirizzo destinazione. Si può ottenere tramite BGP.
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{figures/internet_architecture.jpg}
+    \caption{Architettura di Internet con AS}
+\end{figure}
+BGP è un'istanza dell'algoritmo \textit{Path Vector Routing}. Non è un algoritmo di tipo link-state né di tipo distance-vector in quanto:
+\begin{itemize}
+    \item (link-state) costruire la topologia dell'Internet globale ad ogni nodo e calcolare il percorso minimo è una soluzione non-scalabile.
+    \item (distance-vector) c'è una buona probabilità che emergano cicli che sarebbero pericolosi in una topologia così grande.
+\end{itemize}
+In BGP consideriamo ogni AS come un nodo della rete, che può essere collegato ad altri AS tramite archi (link che collegano i border-router). Quello che vogliamo trovare è quindi il "next-hop" che in questo caso sarà il next-AS del percorso.\\
+Ogni nodo AS scambia con i suoi vicini dei messaggi che contengono una destinazione nota e la lista di nodi (AS) che formano il miglior percorso conosciuto verso quella destinazione. Questo è una differenza importante rispetto al distance-vector perché aiuta a prevenire i cicli: se un nodo \(x\) riceve un \textit{path-vector} in cui \(x\) stesso è incluso, il messaggio deve essere scartato altrimenti si forma un ciclo.\\
+Il costo di ogni hop è sempre pari ad 1 anche se, tramite un trucco, è possibile aumentarlo: basta ripetere l'id di un nodo più volte nel percorso. In questo caso si parla di \textit{path manipulation}.\\
+Queste idee vengono messe in pratica nel protocollo BGP-4. I nodi (AS) della rete non s parlano direttamente bensì sono i border router (BR) a scambiarsi tutti i messaggi tramite una connessione TCP. Possiamo avere più BGP peers (border-router che scambiano messaggi BGP) all'interno di uno stesso AS oppure in due AS diversi:
+\begin{itemize}
+    \item \textbf{E-BGP (esterni):} i due BR appartengono ad AS diversi.
+    \item \textbf{I-BGP (interni):} i due BR appartengono allo stesso AS. Questo serve perché i BR potrebbero essere connessi a due AS diversi pertanto, ci sarà necessità di scambiarsi i differenti pezzi di informazione raccolti.
+\end{itemize}
+Fra i vari messaggi BGP che si scambiano i router, di particolare interesse sono gli UPDATE, scambiati periodicamente. Un messaggio di tipo BGP-UPDATE contiene una lista di \textit{Path Attributes} che codificano le informazioni che rappresentano un percorso verso una certa destinazione. Alcuni di questi attributi sono:
+\begin{itemize}
+    \item ORIGIN: da dove è partito il messaggio.
+    \item AS\_PATH: lista di ID degli AS che compongono il percorso verso la destinazione.
+    \item NEXT\_HOP (next-as).
+    \item LOCAL\_PREF: serve in caso vi siano più percorsi verso una destinazione. Grazie a questo campo possiamo impostare una rotta "preferita".
+\end{itemize}
+Un'altra informazione inclusa nei messaggi BGP-UPDATE è il \textbf{Network Layer Reachability Information} che contiene la lista delle reti raggiungibili tramite il percorso descritto nel campo AS\_PATH.
+
+\newpage
+\section{VPN}
 \end{document}
