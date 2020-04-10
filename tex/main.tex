@@ -38,12 +38,11 @@ Inoltre, in futuro, con l'avvento dell'IoT ci saranno numerosi oggetti sempre co
 \begin{itemize}
     \item \textbf{Version} \textit{(4 bits)}: indica che stiamo utilizzando IPv6.
     \item \textbf{Traffic class} \textit{(1 byte)}: sostituisce il campo Type of Service dell’IPv4. Può essere utilizzato per dare priorità a certi a datagram di certe applicazioni (per esempio, pacchetti ICMP) rispetto a datagram di altre applicazioni.
-    \item \textbf{Flow label} \textit{(20 bits)}: generato randomicamente. Distingue pacchetti che richiedono stessi trattamenti in modo da facilitare la gestione del traffico real time. E’ considerata una feature sperimentale. Per alcune applicazioni è importante andare a rilevare una sequenza di pacchetti trasmessi da un sender a un receiver. Questo perché i requisiti di un applicazione possono dipendere da alcune metriche di performance che considerano più pacchetti contemporaneamente. Senza la flow label, per identificare pacchetti appartenenti allo stesso flusso si usavano implicitamente gli indirizzi di destinazione e sorgente. Con questo nuovo parametro si può specificare in modo esplicito. Il sender mette lo stesso valore di flow label per i pacchetti che appartengono allo stesso flow, quindi il flusso viene riconosciuto dai router guardando IP Address del sender e flow label Da aggiungere, inoltre, che con il NAT non funzionava, perché il source address cambia (ci possono essere più sender dietro lo stesso NAT con lo stesso indirizzo).
+    \item \textbf{Flow label} \textit{(20 bits)}: generato randomicamente. Distingue pacchetti che richiedono stessi trattamenti in modo da facilitare la gestione del traffico real time. E’ considerata una feature sperimentale. Per alcune applicazioni è importante andare a rilevare una sequenza di pacchetti trasmessi da un sender a un receiver. Questo perché i requisiti di un'applicazione possono dipendere da alcune metriche di performance che considerano più pacchetti contemporaneamente. Senza la flow label, per identificare pacchetti appartenenti allo stesso flusso si usavano implicitamente gli indirizzi di destinazione e sorgente. Con questo nuovo parametro si può specificare in modo esplicito. Il sender mette lo stesso valore di flow label per i pacchetti che appartengono allo stesso flow, quindi il flusso viene riconosciuto dai router guardando IP Address del sender e flow label Da aggiungere, inoltre, che con il NAT non funzionava, perché il source address cambia (ci possono essere più sender dietro lo stesso NAT con lo stesso indirizzo).
     \item \textbf{Payload length} \textit{(2 bytes)}: non include la lunghezza dell’header, com’era in IPv4. Gli header di estensione sono considerati come parte del payload.
     \item \textbf{Hop limit} \textit{(1 byte)}: Analogo al campo TTL nell’IPv4, ma in questo caso non è espresso in secondi. Quindi, ogni device intermedio prima della destinazione, riduce di uno l’hop limit, se questo arriva a 0 il pacchetto viene scartato.
     \item \textbf{Next header} \textit{(1 byte)}: Assomiglia al tipo di protocollo in IPv4 ma è molto di più, riflette la nuova organizzazione dei pacchetti IPv6.
 \end{itemize}
-
 Nell’header dell’IPv4 c’èra IHL (Internet Leader Length) che serviva per comunicare al ricevitore e ai nodi intermedi la lunghezza dell’header, che era variabile per via del campo options di dimensioni variabili. IPv6, invece ha un header di dimensione fissa, il controllo viene fatto via Hardware. 40 Byte. IPv6 non è provvisto di frammentazione. In IPv4, se il pacchetto è più grande di MTU, si frammenta; in IPv6 si droppa. MTU varia a seconda del canale. 1280 è il minimo MTU che si può assumere su un qualunque link di internet. Se si vuole spedire di più, bisogna stimare MTU lungo il path. 
 
 \newpage
@@ -131,7 +130,7 @@ Definisce una lista di nodi intermedi che devono essere visitati sul cammino all
     \item \textbf{Segment Left}: nodi rimanenti che devono essere visitati
     \item \textbf{Address} (RT = 0)
 \end{itemize}
-Di solito non si ha il controllo sulla route utilizzata per raggiungere la destinazione finale. Per avere il controllo sul path si usa questa estensione, dove si indica la lista dei router che si vuole che vengano attraversati per consegnare il pacchetto. Non si vanno a rimuovere via via i routers, cosicché il destinatario può sapere il percorso fatto dal pacchetto per raggiungerlo. Non si tiene però conto, in questo modo, del fatto che uno di questi router potrebbe essere congestionato. Soluzione: loose control, ovvero non si specifica tutta la lista ma solo un hop dal quale attraversare. \\ A volte è necessario costruire router senza routing table. Rilevante nelle capillary network dove il router potrebbe essere un sensore. Accade ad esempio in RPL (Routing protocol for low power and lossy network). Un problema è legato al fatto che alcuni nodi intermedi potrebbero essere malevoli e leggere i pacchetti che poi verranno inoltrati. Un altro possibile problema riguarda il DoS attack: ovvero si possono modificare gli indirizzi dei nodi intermedi e far convergere tutto il traffico verso un solo nodo. Per questo motivo adesso questo header è deprecato.
+Di solito non si ha il controllo sulla rotta utilizzata per raggiungere la destinazione finale. Per avere il controllo sul percorso si usa questa estensione, dove si indica la lista dei router che si vuole che vengano attraversati per consegnare il pacchetto. Non si vanno a rimuovere via via i routers, cosicché il destinatario può sapere il percorso fatto dal pacchetto per raggiungerlo. Non si tiene però conto, in questo modo, del fatto che uno di questi router potrebbe essere congestionato. Soluzione: loose control, ovvero non si specifica tutta la lista ma solo un hop dal quale attraversare. \\ A volte è necessario costruire router senza routing table. Rilevante nelle capillary network dove il router potrebbe essere un sensore. Accade ad esempio in RPL (Routing protocol for low power and lossy network). Un problema è legato al fatto che alcuni nodi intermedi potrebbero essere malevoli e leggere i pacchetti che poi verranno inoltrati. Un altro possibile problema riguarda il DoS attack: ovvero si possono modificare gli indirizzi dei nodi intermedi e far convergere tutto il traffico verso un solo nodo. Per questo motivo adesso questo header è deprecato.
 
 \subsection{Fragment Header}
 Diversamente da IPv4, i routers non frammentano pacchetti IPv6.
@@ -168,14 +167,17 @@ Se un link non è in grado di garantire una MTU di 1280 bytes, allora non potrà
 \end{itemize}
 
 \newpage
-\section{Categorie di indirizzi}
+\section{Categorie di indirizzi IPv6}
+Non è presente il broadcast in IPv6. Il broadcast veniva usato in IPv4 con DHCP ad esempio. Il Broadcasting in IPv4 è limitato alla stessa subnet (rete locale, ovvero il router non manda verso l’esterno i pacchetti broadcast). \\
 \begin{itemize}
     \item \textbf{Unicast}: identifica in maniera univoca un’interfaccia di un nodo IPv6. Un pacchetto inviato ad un indirizzo unicast è inviato all’interfaccia identificata da quell’indirizzo.
     \item \textbf{Multicast}: identifica un gruppo di interfacce IPv6. Un pacchetto inviato ad un indirizzo multicast è processato da tutti i membri del gruppo multicast.
     \item \textbf{Anycast}: assegnato a interfacce multiple (tipicamente su nodi multipli). Un pacchetto inviato ad un indirizzo anycast è consegnato a soltanto una di queste interfacce (tipicamente la più vicina).
 \end{itemize}
-
-Non è presente il broadcast in IPv6. Il broadcast veniva usato in IPv4 con DHCP ad esempio. Il Broadcasting in IPv4 è limitato alla stessa subnet (rete locale, ovvero il router non manda verso l’esterno i pacchetti broadcast). \\ In IPv6 si utilizzano di default dei Multicast address per identificare il servizio necessario. Questo indirizzo sarà associato al server che svolge quel servizio, quindi tutti i server DHCP avranno lo stesso indirizzo multicast IPv6. In questo modo il pacchetto viene ricevuto solo dal server DHCP e tutti gli altri nodi non interessati (dato che non forniscono quel servizio) non riceveranno il messaggio, non dovranno quindi processarlo per poi scartarlo (come in IPv4).\\ Un indirizzo IPv6 è assegnato ad un’interfaccia, almeno un indirizzo unicast per interfaccia di un nodo. Una singola interfaccia può essere assegnata a più indirizzi IPv6 di ogni tipo. \\ Gli indirizzi IPv6 hanno uno “scope” (codificato come parte dell’indirizzo): lo “scope” è un intervallo topologico tra cui gli indirizzi potrebbero essere usati come identificatori unici. E’ una parte dell’indirizzo che indica la parte della rete dove l’indirizzo può essere usato come unico. Ci sono scope globali e non globali.\\ Non è più presente ARP, il servizio viene fornito direttamente da IPv6. Scope è un sottoinsieme di tutta la network codificata con un indirizzo. In IPv4 c’è solo uno scopo, che è il global-scope, mentre in IPv6 c’è sia il global-scope che local-scope.
+In IPv6 si utilizzano di default dei Multicast address per identificare il servizio necessario. Questo indirizzo sarà associato al server che svolge quel servizio, quindi tutti i server DHCP avranno lo stesso indirizzo multicast IPv6. In questo modo il pacchetto viene ricevuto solo dal server DHCP e tutti gli altri nodi non interessati (dato che non forniscono quel servizio) non riceveranno il messaggio, non dovranno quindi processarlo per poi scartarlo (come in IPv4).\\
+Un indirizzo IPv6 è assegnato ad un’interfaccia, almeno un indirizzo unicast per interfaccia di un nodo. Una singola interfaccia può essere assegnata a più indirizzi IPv6 di ogni tipo. \\ 
+Gli indirizzi IPv6 hanno uno “scope” (codificato come parte dell’indirizzo): lo “scope” è un intervallo topologico tra cui gli indirizzi potrebbero essere usati come identificatori unici. E’ una parte dell’indirizzo che indica la parte della rete dove l’indirizzo può essere usato come unico. Ci sono scope globali e non globali.\\
+Non è più presente ARP, il servizio viene fornito direttamente da IPv6. Scope è un sottoinsieme di tutta la network codificata con un indirizzo. In IPv4 c’è solo uno scopo, che è il global-scope, mentre in IPv6 c’è sia il global-scope che local-scope.
 
 \subsection{Link IPv6}
 Identificato da un set di interfacce che possono comunicare direttamente tra di loro (hop singolo). Un link IPv6 è un’astrazione, insieme di interfacce che possono comunicare direttamente senza l’intermezzo di un router. Il protocollo IP introduce un modello per modellare la rete. Un link che pensiamo come ad esempio un filo, è in realtà un'astrazione di ciò che il sottostante link-layer protocol permette di fare. Se, per esempio, si dice che un link è broadcast, significa che la sottostante link-layer technology mette a disposizione di IP la comunicazione broadcast (non si parla quindi del mezzo). \\ Ethernet supporta broadcast, la tecnologia però, non lo è. È connessa a degli switch in unicast (point-to-point).
@@ -309,7 +311,7 @@ Nella versione IPv4 si poteva tener traccia della raggiungibilità dei vicini so
 Come già accennato, questo protocollo genera messaggi che sono trasmessi come payload IPv6 con extension number 58, che identifica ICMPv6.
 \begin{figure}[H]
 \centering
-\includegraphics[scale=0.4]{figures/ICMP format.png}
+\includegraphics[scale=0.4]{figures/icmp_format.jpg}
 \caption{Formato messaggio ICMP}
 \end{figure}
 Nel messaggio si possono riconoscere i seguenti campi:
@@ -353,24 +355,24 @@ Periodicamente, i router inviano dei messaggi di \textit{Router Advertisement} a
 Si vanno ora ad analizzare alcuni campi all'interno del messaggio di Router Advertisement:
 \begin{itemize}
     \item Type = 134, Code = 0
-    \item Cur Ho Limit: c'è un valore di default per hop limit. Non si può, però, usare un hop limit minore del diametro della nostra rete altrimenti, ovviamente, i pacchetti non arriverebbero al confine. Mentre, non ci sono motivi per impostare un hop limit maggiore del diametro della nostra rete.
-    \item Time: parametro di configurazione.
-    \item M flag (1 bit): 
+    \item \textbf{Cur Ho Limit:} c'è un valore di default per hop limit. Non si può, però, usare un hop limit minore del diametro della nostra rete altrimenti, ovviamente, i pacchetti non arriverebbero al confine. Mentre, non ci sono motivi per impostare un hop limit maggiore del diametro della nostra rete.
+    \item \textbf{Time:} parametro di configurazione.
+    \item \textbf{M flag:} 
         \begin{itemize}
             \item 0: configurazione stateless: in cui si indica che ci deve essere una configurazione autonoma.
             \item 1: configutazione stateful (DHCP): in questo caso non si può scegliere da soli il proprio indirizzo. Si utilizza il servizio DHCP.
         \end{itemize}
-    \item Prf flag (2 bits): Preferenza riguardo al default router. (Gateway in IPv4)
+    \item \textbf{Prf flag (2 bits):} Preferenza riguardo al default router. (Gateway in IPv4)
     \item Options
         \begin{itemize}
             \item Source link-layer address
             \item MTU
             \item Prefix information
         \end{itemize}
-    \item Prefix information option: informazione relativa al prefix, ce n'è una per ogni prefix. Type e length specificano il tipo e la lunghezza del prefisso. Prefix length è equivalente alla mask in IPv4.
-    \item L flag: on-link determination
-    \item A flag: se settato, questo flag indica che deve essere eseguito il Duplicate Address Detenction
-    \item Address lifetime
+    \item \textbf{Prefix information option:} informazione relativa al prefix, ce n'è una per ogni prefix. Type e length specificano il tipo e la lunghezza del prefisso. Prefix length è equivalente alla mask in IPv4.
+    \item \textbf{L flag:} on-link determination
+    \item \textbf{A flag:} se settato, questo flag indica che deve essere eseguito il Duplicate Address Detenction
+    \item \textbf{Address lifetime}.
 \end{itemize}
 
 \subsection{Configurazione dell'indirizzo}
@@ -421,19 +423,26 @@ I 6LoWPAN sono network detti "stub", ovvero che un tipo di network che non fa pa
 \end{itemize}
 
 \subsection{Multi-hop forwarding in Low Power and Lossy Networks}
-Il multi-hop forwarding si può implementare su layer 2 o 3. Nell'implementazione a layer-3 i router sono normali routerIP, se il multi-hop è implementato a layer-2, questo è traparente a 6LoWPAN che quindi non se ne deve curare. Non ci sono limiti alla mobilità dei nodi all'interno della stessa 6LoWPAN, finché un nodo può parlare con almeno un router si può mantenere la comunicazione con qualsiasi altro nodo (senza cambiare indirizzo). \\ Un primo problema da risolvere per ottenere compatibilità tra IPv6 e 802.15.4 è che il primo assume che un subnet è associato ad un singolo link e quindi tutti gli host sullo stesso subnet, possono comunicare fra di loro. Questa assunzione non è sempre vera un network wireless multi-hop. Per esempio, un host A potrebbe comunicare con B, B con C, ma A potrebbe non comunicare direttamente con C perché sono troppo lontani fra di loro. In questo caso, il sottostante modello di link cambia: ovvero, non c'è un singolo dominio broadcast link-layer, ma multipli domini broadcast sovrapposti. In questo tipo di scenario, per ottenere compatibilità con IPv6, un protocollo L2 per network wireless multi-hop, dovrebbe supportare un forwarding multi-hop link-layer, che 802.15.4 non fa. Ci sono quindi due soluzioni per poter ovviare a questo problema: Mesh-Under e Route-Over.
+Il multi-hop forwarding si può implementare su layer 2 o 3. Nell'implementazione a layer-3 i router sono normali routerIP, se il multi-hop è implementato a layer-2, questo è traparente a 6LoWPAN che quindi non se ne deve curare. Non ci sono limiti alla mobilità dei nodi all'interno della stessa 6LoWPAN, finché un nodo può parlare con almeno un router si può mantenere la comunicazione con qualsiasi altro nodo (senza cambiare indirizzo).\\ Un primo problema da risolvere per ottenere compatibilità tra IPv6 e 802.15.4 è che il primo assume che un subnet è associato ad un singolo link e quindi tutti gli host sullo stesso subnet, possono comunicare fra di loro. Questa assunzione non è sempre vera un network wireless multi-hop. Per esempio, un host A potrebbe comunicare con B, B con C, ma A potrebbe non comunicare direttamente con C perché sono troppo lontani fra di loro. In questo caso, il sottostante modello di link cambia: ovvero, non c'è un singolo dominio broadcast link-layer, ma multipli domini broadcast sovrapposti. In questo tipo di scenario, per ottenere compatibilità con IPv6, un protocollo L2 per network wireless multi-hop, dovrebbe supportare un forwarding multi-hop link-layer, che 802.15.4 non fa. Ci sono quindi due soluzioni per poter ovviare a questo problema: Mesh-Under e Route-Over.
 
 \subsubsection{L2 forwarding (Mesh-Under)}
-La soluzione proposta a livello 2 è chiamata "mesh under". \\ Un modo possibile di implementare questo protocollo è il seguente: supponiamo di avere un frame diretto da A a C, ma C non è direttamente raggiungibile. \textit{(Src: A, Dst: C, DATA)}. Si assume, quindi, che C sia raggiungibile tramite B, che è raggiungibile anche da A. Quindi, si incapsula il frame in un altro header contenente B come indirizzo di destinazione \textit{(Src: A, Dst: B, Src: A, Dst: C, DATA)}. Quando B riceve il frame, rimuove il secondo header e controlla il primo, determinando che il pacchetto è rivolto verso C, quindi lo incapsula in un nuovo header e lo manda verso C \textit{(Src: B, Dst: C, Src: A, Dst: C, DATA)}. Finalmente, C riceve il pacchetto, rimuove l'header e controlla che il pacchetto sia da A verso C e passa i dati al livello superiore. 
+La soluzione proposta a livello 2 è chiamata "mesh under".\\
+Un modo possibile di implementare questo protocollo è il seguente: supponiamo di avere un frame diretto da A a C, ma C non è direttamente raggiungibile. \textit{(Src: A, Dst: C, DATA)}.\\
+Si assume, quindi, che C sia raggiungibile tramite un certo B che è raggiungibile anche da A. Quindi, si incapsula il frame in un altro header contenente B come indirizzo di destinazione. \textit{(Src: A, Dst: B, Src: A, Dst: C, DATA)}.\\
+Quando B riceve il frame, rimuove il secondo header e controlla il primo, determinando che il pacchetto è rivolto verso C, quindi lo incapsula in un nuovo header e lo manda verso C. \textit{(Src: B, Dst: C, Src: A, Dst: C, DATA)}.\\
+Finalmente, C riceve il pacchetto, rimuove l'header e controlla che il pacchetto sia da A verso C e passa i dati al livello superiore.
 \begin{figure}[H]
-\centering
-\includegraphics[scale=0.4]{figures/L2 forwarding.png}
-\caption{Mesh Under protocol stack}
+    \centering
+    \includegraphics[scale=0.4]{figures/L2 forwarding.png}
+    \caption{Mesh Under protocol stack}
 \end{figure}
-Ovviamente, la scelta del prossimo hop per una certa destinazione, è determinata sulla base di un algoritmo di routing specificato a priori. Si crea un problema che riguarda la mancanza di interoperabilità tra L2 ed L3, quindi la riparazione delle route sono lente.
+Ovviamente, la scelta del prossimo hop per una certa destinazione, è determinata sulla base di un algoritmo di routing specificato a priori. Si crea un problema che riguarda la mancanza di interoperabilità tra L2 ed L3, quindi la riparazione delle rotte sono lente.
 
 \subsubsection{L2 forwarding vs IP model}
-Definizione di link: un'area topologica limitata da routers (in cui la comunicazione è regolata da un protocollo L2) che decrementa l'IPv6 Hop Limit quando si fa il forwarding dei pacchetti. \\ Definizione di subnet: un'area topologica che utilizza lo stesso prefisso nell'indirizzo, dove quel prefisso non viene ulteriormente suddiviso eccetto per quanto riguarda indirizzi individuali. \\ Nel modello IPv6: una subnet è associata con un link e subnet multiple pootrebbero essere associate allo stesso link. I protocolli L2 dovrebbero essere progettati per realizzare un modello di link consistente con il modello IP. \\ Il modello a cui si deve far riferimento è quello multi-access, in quanto si hanno più nodi che devono accedere allo stesso link, pacchetti mandati ad un indirizzo link-local multicast possono essere ricevuti da tutti i nodi interessati in quel link. Due nodi sul link devono poter comunicare senza nessun decremento dell'Hop Limit dell'IPv6. Deve quindi essere tutto trasparente ad IPv6. 
+\underline{Definizione di link}: un'area topologica limitata da routers (in cui la comunicazione è regolata da un protocollo L2) che decrementa l'IPv6 Hop Limit quando si fa il forwarding dei pacchetti.\\
+\underline{Definizione di subnet}: un'area topologica che utilizza lo stesso prefisso nell'indirizzo, dove quel prefisso non viene ulteriormente suddiviso eccetto per quanto riguarda indirizzi individuali. \\
+Nel modello IPv6: una subnet è associata con un link e subnet multiple pootrebbero essere associate allo stesso link. I protocolli L2 dovrebbero essere progettati per realizzare un modello di link consistente con il modello IP. \\
+Il modello a cui si deve far riferimento è quello multi-access, in quanto si hanno più nodi che devono accedere allo stesso link, pacchetti mandati ad un indirizzo link-local multicast possono essere ricevuti da tutti i nodi interessati in quel link. Due nodi sul link devono poter comunicare senza nessun decremento dell'Hop Limit dell'IPv6. Deve quindi essere tutto trasparente ad IPv6.
 \paragraph{Switched Ethernet}
 In Ethernet si ha un esempio di comunicazione cablata multi-hop, fornisce a IP un modello di link multi-access. Viene utilizzato uno spanning tree protocol per implementare un modello multi-access. Questo protocollo opera indipendentemente dalla funzione di forwarding, l'albero creato è un sottoinsieme dei link e questo protocollo viene utilizzato per eliminare loop non graditi. Esiste solo un path per raggiungere la destinazione e viene deciso dal protocollo in fase di creazione. \\ In caso di failure di un nodo, lo spanning tree viene ricreato e ci vogliono pochi secondi per poter ricreare una nuova topologia. Con questo protocollo, si può essere sicuri che gli eventuali messaggi broadcast inviati, arriveranno una sola volta a ogni nodo.
 \paragraph{Multi-hop wireless network}
@@ -468,12 +477,12 @@ In 6LoWPAN non viene fatta nessuna assunzione sul link model (undetermined link 
 I prefissi IPv6 sono ottenuti attraverso il Router Advertisements. \\ Gli interface ID IPv6 sono ottenuti in accordo alla procedura \textit{Stateless Address Autoconfiguration (SSA)}. E' obbligatorio avere un mapping tra il link-layer (layer 2) e l'indirizzo IPv6 (layer 3), in questo modo non c'è bisogno di fare address resolution e otteniamo una compressione migliore dell'header. Infatti, l'indirizzo a livello 2 è uguale ad un pezzo dell'indirizzo IPv6. Si ottiene quindi una buona compressione, mettendo tale parte nell'indirizzo.
 \begin{figure}[H]
 \centering
-\includegraphics[scale=0.4]{figures/64bit link layer address.png}
+\includegraphics[scale=0.6]{figures/64bit link layer address.png}
 \caption{64-bit IEEE EUI-64 link layer address}
 \end{figure}
 \begin{figure}[H]
 \centering
-\includegraphics[scale=0.4]{figures/16bit short address.png}
+\includegraphics[scale=0.6]{figures/16bit short address.png}
 \caption{16-bit short address}
 \end{figure}
 
@@ -668,11 +677,23 @@ Ciascun nodo ha un contatore \(\displaystyle c\) ed un timer \(\displaystyle\tau
     \end{enumerate}
     \item altrimenti resetto tutto.
 \end{enumerate}
- La costante K è detta soglia di ridondanza e indica il numero massimo di messaggi DIO che possono essere ascoltati in un determinato intervallo (misurato da Trickle). Oltre questa soglia si ha la soppressione dei messaggi.
- 
-\subsection{Point to Multipoint Forwarding}
-\subsection{Point-to-Point Routing}
-forse si possono saltare?
+La costante K è detta soglia di ridondanza e indica il numero massimo di messaggi DIO che possono essere ascoltati in un determinato intervallo (misurato da Trickle). Oltre questa soglia si ha la soppressione dei messaggi.
+
+\subsection{Comunicazioni Point-to-Point e Point-to-Multipoint}
+Fino ad ora abbiamo considerato solo comunicazioni da nodi verso la radice del DODAG. In RPL è possibile avere comunicazioni \textbf{punto-a-punto} (messaggi dalla radice ai nodi) oppure \textbf{punto-a-multipunto} (da un nodo ad un altro in un altro DODAG). Queste caratterisitiche sono supportate da messaggi speciali chiamati \textbf{DAO - Destination Advertisement Object}, che sono usati dai nodi per avvisare che sono raggiungibili tramite un certo percorso.\\
+Esistono due modalità di implementazione:
+\paragraph{Storing mode} Assumiamo che i router che compongono il DODAG abbiano abbastanza memoria per memorizzare una tabella di routing.
+\begin{enumerate}
+    \item Messaggi DAO contengono indirizzo IPv6 del nodo sorgente e sono mandati in unicast verso i nodi "genitori".
+    \item Un nodo che riceve un DAO aggiunge un'entrata alla sua tabella di routing che associa l'indirizzo contenuto nel DAO al nodo "figlio" dal quale il messaggio è arrivato. Il nodo "figlio" sarà quindi un \textit{next-hop} per la destinazione specificata nel DAO.
+    \item Il DAO viene inoltrato in su per l'albero fino alla radice.
+\end{enumerate}
+\paragraph{Non-Storing mode} Non avendo memoria a disposizione per la routing table, memorizziamo le stesse informazioni all'interno dei pacchetti.
+\begin{enumerate}
+    \item Tutti i messaggi DAO convergono alla radice. Ogni messaggio contiene la lista dei nodi attraversati lungo il loro percorso per arrivare alla radice. In questo modo il nodo root conosce tutti i possibili percorsi verso una qualsiasi destinazione.
+    \item Il traffico Point-to-Multipoint viene indirizzato dalla root verso il percorso desiderato.
+    \item Il traffico Point-to-Point viene mandato al nodo root e poi indirizzato come nel caso P2MP.
+\end{enumerate}
 
 \newpage
 \section{CoAP}
@@ -1194,15 +1215,40 @@ Se vogliamo modificare un protocollo di routing esistente (tipo OSPF) per suppor
     \item Unreserved Bandwidth: banda ancora disponibile su un link.
     \item Administrative Group: indica un "gruppo" a cui un link appartiene. In questo modo si può discriminare i vari link se non si voglio attraversare.
 \end{itemize}
-Gli attributi dei link dovranno quindi essere diffusi come parte delle informazioni di routing dal protocollo di routing. OSPF-TE è la versione estesa di OSPF per supportare il Traffic Engineering. Ogni router è a conoscenza degli attributi correnti di tutti i link in una determinata area. Questi dati vengono salvati nel Traffic Engineering Database (TED).
+Gli attributi dei link dovranno quindi essere diffusi come parte delle informazioni di routing dal protocollo di routing. OSPF-TE è la versione estesa di OSPF per supportare il Traffic Engineering. Ogni router è a conoscenza degli attributi correnti di tutti i link in una determinata area. Questi dati vengono salvati nel Traffic Engineering Database (TED).\\
+Lo scambio di queste informazioni può essere periodico oppure in risposta ad eventi (cambiamenti dello stato dei link). Tuttavia, se i cambiamenti dei link diventano frequenti, si rischia di sovraccaricare la rete con messaggi di controllo. In questi casi è più opportuno usare un approccio periodico, anche se meno preciso sarà comunque più scalabile.\\
+In OSPF-TE ci sono alcuni attributi che sono statici mentre l'attributo \textit{unreserved bandwidth} cambia frequentemente perché varia ogni qualvolta un flusso riserva della banda. Per questo motivo l'approccio event-based non è scalabile e, in partica, si utilizza un approccio ibrido.
 
-\newpage
 \subsection{Protocolli di Routing Estesi}
 \subsubsection{CSPF}
 E' una versione dell'algoritmo di Dijkstra (SPF) estesa per il TE in cui abbiamo i vincoli (Constraint SPF). Inizialmente applichiamo i vincoli a tutti i link nel TED, dopodiché applichiamo l'algoritmo di Dijkstra (SPF) per calcolare il grafo dei percorsi minimi. SPF viene calcolato a partire dal router d'ingresso della rete perchè quest'ultimo conosce la topologia.
 
 \subsubsection{RSVP-TE}
-RSVP viene esteso per supportare LSP dopo che è stato ottenuto il grafo dei percorsi minimi tramite CSPF.
+Algoritmo che serve per permettere a nuovi flussi di riservare le risorse e allo stesso tempo costruire un percorso. RSVP viene esteso per supportare LSP dopo che è stato ottenuto il grafo dei percorsi minimi tramite CSPF. Il pacchetto contiene la lista dei router da attraversare.\\
+L'ingress router dell'LSP che vogliamo costruire si chiama \textit{head-end} ed ha il compito di iniziare il protocollo mandando un \textit{Path-message} al quale riceverà, come risposta, una \textit{Resv-message}. La differenza rispetto a RSPV tradizionale è che questi due messaggi trasportano informazioni aggiuntive. In particolare, per il path-message abbiamo:
+\begin{itemize}
+    \item Label Request Object (LRO): indica che vogliamo creare un percorso e fare label binding ad ogni hop.
+    \item Explicit Route Object (ERO): contiene il percorso da seguire in termini di hops. Questo percorso può essere calcolato direttamente dallo \textit{head-end} in modo da evitare computazioni ad ogni hop. Esiste un bit all'interno dell'ERO che indica se gli hops contenuti sono \textit{strict} o \textit{loose}. Nel primo caso i nodi adiacenti sono direttamente connessi e quindi il percorso sarà esattamente quello descritto dall'ERO. Nel secondo caso lo \textit{head-end} può fornire una lista di nodi tale che due nodi successivi possano non essere direttamente connessi. In questo caso ogni nodo del percorso può calcolare il percorso del next node della lista in maniera autonoma usando CSPF.
+    \item Record Route Object (RRO): contiene lo stato relativo a questa operazione.
+    \item Sender TSpec: contiene la traffic demand.
+\end{itemize}
+Per il resv-message abbiamo:
+\begin{itemize}
+    \item Record Route Object (RRO)
+    \item Label Object: specifica la label scelta da un router per questo LSP che deve essere comunicata al router soprastante (upstream) nel percorso.
+\end{itemize}
+Per evitare situazioni di conflitto sulle risorse, esiste l'Admission Control su ogni hop. Quando un percorso scelto trmaite CSPF viene scelto, gli viene garantito che ci siano abbastanza risorse lungo il percorso. Questo nella realtà non è sempre vero in quanto le informazioni contenute nella TED potrebbero non essere aggiornate.\\
+Le LSP forniscono 8 livelli di priorità. In realtà si utilizzano solo 2 priorità:
+\begin{itemize}
+    \item \textbf{setup priority:} per percorsi in costruzione.
+    \item \textbf{hold priority:} per percorsi che sono già attivi.
+\end{itemize}
+Se due flussi vogliono riservare delle risorse contemporaneamente, ma non ci sono abbastanza risorse per entrambi, la setup priority è usata per discriminare quale dei due sarà accettato.\\
+Poichè le condizioni della rete cambiano in maniera dinamica, il percorso ottimale per un flusso potrebbe cambiare nel tempo. Per questo motivo è necessario ri-eseguire CSPF in modo tale da aggiornare le LSP. Questo processo è chiamato ri-ottimizzazione.
+
+\subsubsection{Fast Re-Routing}
+Esempio di applicazione di MPLS-TE. In caso di fallimenti di rete, nelle reti tradizionali quello che succede è che l'elemento che ha rilevato il problema informa tutti gli altri che, a loro volta, ri-calcoleranno i percorsi. Il problema di questo approccio è che impiega molto tempo.\\
+Grazie a fast re-routing si può trovare un percorso alternativo e temporaneo per sopperire (seppur parzialmente) al malfunzionamento della rete fino a che non verrà calcolato un nuovo percorso ufficiale. Tutto questo viene realizzato avendo un LSP di backup pre-calcolato per ogni link: quando viene rilevato un fallimento, l'LSP di backup viene usato immediatamente sfruttando il tunneling MPLS per bypassare il link che è fallito.
 
 \newpage
 \section{BGP - Border Gateway Protocol}
@@ -1236,4 +1282,76 @@ Un'altra informazione inclusa nei messaggi BGP-UPDATE è il \textbf{Network Laye
 
 \newpage
 \section{VPN}
+Il problema delle cosiddette "Corporate WANs" consiste nel voler collegare fra loro delle reti che si trovano molto distanti l'una dall'altra. Vogliamo che il collegamento le faccia risultare vicine. Il problema è che, essendo distanti, non esiste un collegamento diretto fra queste reti pertanto, sarà necessario implementare un meccanismo che simuli la "vicinanza". \\ Tale rete non potrà essere pubblica, ma privata, ovvero deve essere utilizzabile solo dalla compagnia e deve avere un meccanismo di routing ed uno spazio degli indirizzi indipendenti dal resto delle reti con cui condivide l'infrastruttura mediante la quale è realizzata.
+\subsection{Concetti generali}
+\paragraph{Overlay VPN} In questo modello, ogni sito ha un router che è connesso mediante un link punto punto virtuale ad altri routers locati in altri siti. La gestione dell'overlay è fornita dal service provider. In questa connessione punto-punto, i router si scambiano pacchetti del routing protocol in modo da scambiarsi informazioni riguardo la network reachability. Questo si può fare a più livelli: stendendo linee fisiche (livello 1, anche se in questo caso non si tratterebbe più di rete virtuale), oppure al livello 2 (con, ad esempio, una tecnologia Frame Relay, packet switched). Questo tunneling può essere fatto anche al livello 3 (IP over IP tunneling, usando protocolli come Generic Route Encapsulation o IPsec). \\ Si ottengono risultati sperati, ovvero: connettività tra i siti, indirizzi privati (no vincoli nell'addressing) e traffico privato. Si ottengono tuttavia degli svantaggi da questo approccio. I Customer Edge Routers (CE) possono essere gestiti dal cliente, però devono saperli connettere e configurare, cosa non scontata. Problemi di scalabilità: occorre un router per sito, quindi può non essere facile fare manuntenzione della configurazione su decine di migliaia di router, che si trovano in luoghi diversi. Se si deve aggiungere un nuovo sito, su richiesta del cliente, si deve configurare non solo il router appartenente al nuovo sito, ma anche i router precedenti, che devono quindi essere in grado di raggiungere il nuovo sito. È quindi complicato mantenere l'overlay.
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{figures/overlay vpn.png}
+    \caption{Overlay VPN}
+\end{figure}
+
+\paragraph{Peer-to-peer approach} I peering sono stabiliti fra router CE e solo con il router edge del provider (PE). Quindi, ogni router del customer, scambierà informazioni di routing solo con il provider edge router a cui sono connessi. Quindi, indipendentemente dal numero di "siti" del customer, il numero di peer di ogni customer edge router sarà uno. Ora la configurazione di CE è estremamente semplice: all'esterno del sito del customer, hai un unico next hop possibile. Prima ne avevamo tanti, ovvero quanti il numero di virtual tunnel/virtual link, tramite i quali eri connesso agli altri siti. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{figures/peer-to-peer approach.png}
+    \caption{Peer-to-peer approach}\label{figura:peer}
+\end{figure}
+Il problema di questo approccio riguarda la figura \ref{figura:peer}, in cui i colori gialli delle nuvole indicano che appartengono ad altri clienti rispetto a quelli delle nuvole grigie: 5 siti, 2 customer. Questi clienti fanno un addressing indipendente, ci sono degli overlapping. Quindi, i problemi sono: come realizzare private addressing e isolamento del traffico. \\ Una soluzione potrebbe essere quella di inserire dei filtri nei Provider Edge Routers. Un pacchetto originato, ad esempio da 10.2.0.0 "grigio", se è destinato ad un sito "grigio" viene permesso, altrimenti viene filtrato. In pratica, si configura una grande ACL all'interfaccia di ingresso di ogni PER, per controllare se il traffico può entrare nella rete o meno: questo in base al fatto che sia indirizzato ad uno dei siti consentiti o meno (assumendo che si sappia la source). Questa non è una soluzione buona, dato che si considera la network del provider come un "single routing domain", non si possono avere più site con lo stesso indirizzo: si perderebbe così il private addressing oppure, al più, dovremmo implementare delle complicate traduzioni. Si raggiungerebbe comunque un isolamento del traffico, ma ad un costo molto alto, dato che si dovrebbero mantenere dei complessi ACL ad ogni PE. Questa configurazione dovrebbe poi essere continuamente revisionata, dato che ogni volta che cambia la topologia di rete, si devono riconfigurare i PE (le loro ACL). Le ACL, inoltre, rallentano il routing e aggiungono latenza. Quindi, questa soluzione è di difficile applicazione. \\ Cercando un'altra soluzione, l'effetto che si vorrebbe ottenere, è quello che se c'è un pacchetto che va da CE a PE, questo venga consegnato solo se la routing table che è usata per quel pacchetto, che include solo gli indirizzi di destinazione degli altri siti dello stesso customer, sa qual è il next hop di quel pacchetto. Quindi, sempre nella figura \ref{figura:peer}, se consideriamo il site 10.3.0.0/16, appartenente ad un cliente "giallo", se questo manda un pacchetto con destinazione 10.2.0.0/16, ci si aspetterebbe che il PE a cui è attaccato filtri questo pacchetto, in quanto nella rete del cliente giallo, non ci sono sites con tale indirizzo. Come si può ottenere questo effetto? \\ La soluzione è tenere diverse routing table nel PE, una per ogni customer. E' come se si considerassero più router logici, uno per ogni cliente. Si controlla nella tabella giusta, in base al cliente che ti sta inviando quel pacchetto. Questo si chiama \textit{Constrain Routing}, perché i PE si scambiano informazioni, che saranno diverse per diversi clienti, quindi durante lo scambio delle informazioni occorrerà mettere informazioni relative ad un certo cliente, nella sua routing table. C'è ancora un problema di overlapping, quando una rete manda un pacchetto con un indirizzo, presente in 2 clienti diversi, si crea un problema di forwarding per siti con indirizzi in overlapping. La soluzione quindi è quella di utilizzare un tunneling tra provider edge router. È una soluzione standard che troviamo negli RFC, chiamata \textit{BGP/MPLS IP Layer 3 VPN}.
+
+\subsection{BGP/MPLS IP VPN} Considerando lo scenario presente nella seguente figura:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{figures/bgp-mpls vpn.png}
+    \caption{Rete BGP/MPLS IP VPN}\label{figura:bgpmpls}
+\end{figure}
+Il customer deve solo avere un link al PE e notificare com'è fatta la sua rete. Nella figura \ref{figura:bgpmpls} si ha P che è un Core Router. In ogni Provider Edge Router si hanno diverse tabelle, una per ogni Customer Edge Router connesso. Si distinguono i pacchetti dei diversi clienti in base all'interfaccia sulla quale arrivano. Queste tabelle sono chiamate \textit{Virtual Routing Forwarding Table (VRF)}. Quindi nel PE1, troveremo una VRF per CE1.1 e CE2.1, con questo approccio è come avere molteplici router virtuali, c'è poi una routing table per il global forwarding, ovvero per forwardare traffico non destinato a siti customers. \\ Quindi, se il site1 (grigio), manda un pacchetto all'indirizzo 10.3.1.1, il pacchetto va prima a CE1.1, poi a PE1 che, in base alla interfaccia di provenienza, sa che deve guardare la tabella di routing per il cliente 1. Non troverà un'entrata per 10.3.0.0/16 e quindi scarterà il pacchetto. Come fa PE1 a sapere che, ad esempio, 10.2.0.0/16 può essere raggiunta tramite PE2? Glielo deve dire PE2, occorre un dynamic routing protocol, ovvero PE2 avverte PE1 che quell'indirizzo è raggiungibile attraverso di lui, come fanno i normali protocolli di routing. Tuttavia, adesso si devono scambiare informazioni anche riguardo la proprietà dell'indirizzo, customer giallo o grigio. Questo può essere fatto facendo facendo girare un'istanza del protocollo di routing per VPN. In tal modo è come avere n reti separate, anche se questo approccio non scala, dato che si devono configurare tante istanze di routing protocol per quanti customer si hanno. \\ Si vuole quindi avere una sola istanza del protocollo di routing. In questo caso entra in gioco BGP. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.6]{figures/BGP route distribution.png}
+    \caption{BGP Route Distribution}
+\end{figure}
+Tramite un BGP update, PE1 dirà a PE2 quali destinazioni sono raggiungibili tramite di lui, specificando anche il site. Si sta, quindi, informando il PE2 che il PE1 è il next hop per certe destinazioni. Il problema però sorge perché con BGP standard, non si può, nella lista, mettere 2 volte lo stesso indirizzo di destinazione. Non c'è spazio per marcare un indirizzo come "grigio" piuttosto che "giallo". \\ La soluzione risulta quella di definire nuove famiglie di indirizzi VPN-IP: un nuovo schema di indirizzamento, dove aggiungiamo alla destinazion network un prefisso, chiamato \textit{Route Distinguisher (RD)}, di 8 byte che deve essere unico globalmente. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.6]{figures/Route distinguisher.png}
+    \caption{Route Distinguisher}
+\end{figure}
+Grazie a questo RD, adesso abbiamo route distinti (per colore) e non si hanno problemi con BGP. \\ Ogni router può usare un RD differente a quello degli altri router per riferirsi a una tabella. Se si usasse RD per ogni VPN, non si avrebbe questo problema, ma si assume che non si stia utilizzando questa soluzione. Quindi, RD non può essere usato come indice nelle VRF, ma viene usato solo per differenziare i messaggi in BGP. \\ Un altro problema è: si vuole più flessibilità, si potrebbe aver bisogno di comunicare tra un host della VPN gialla e uno della grigia. La soluzione a questo problema è raggiunta tramite \textit{Route Target}: è un altro numero, differente da RD. Viene trasportata in un altro attributo di BGP, il \textit{Community Attribute}. Quando arriva un annuncio a un router, per ogni tabella del router viene controllato il Route Tag: se quel Route Target è consentito per quella tabella, allora l'indirizzo viene aggiunto in quella tabella, altrimenti no. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{figures/route target.png}
+    \caption{Route Target}
+\end{figure}
+Nelle tabelle si hanno due valori in RT, per import ed export.
+\begin{itemize}
+    \item \textbf{Import-RT}: specifica quale route vogliamo importare in un dato VRF: se il set di Import-RT include almeno uno degli RT nel messaggio BGP, l'informazione contenuta nel messaggio BGP, è usata per aggiornare la VRF
+    \item \textbf{Export-RT}: è la lista di RT che devono essere incluse in un messaggio BGP che annuncia le rotte da questa VRF.
+\end{itemize}
+Questa modalità di utilizzare Route Target è chiamata \textit{Full-mesh}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{figures/full-mesh vpn.png}
+    \caption{Full-mesh VPN}
+\end{figure}
+Adesso, bisogna vedere come inoltrare i pacchetti. Dato che nel mezzo a dei PE, potrebbero esserci delle reti IP, quindi con destination-based forwarding, risulta quindi impossibile proseguire. È necessario fare tunneling tra PE (MPLS tunnel). I router interni scambiano solamente i pacchetti tra i PE, non sanno nulla dei VPN-IP e delle VRF, quindi torna di nuovo il problema dell'overlapping degli IP. Giunto ad un PE, l'informazione "giallo o grigio", non può essere trovata nel pacchetto IP (dato che è presente il tunnel). L'idea è quindi quella di avere più tunnel, uno per VPN. Quindi, se un pacchetto è appartentente alla VPN "gialla", attraverserà l'LSP "giallo". \\ Si può, però, fare di meglio attraverso il label stacking. Si avrà un tunnel tra PE1 e PE2 e si avrà lo stack di multipli LSP su questo tunnel, uno per ogni VPN. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{figures/vpn label stacking.png}
+    \caption{MPLS label stacking su VPN}
+\end{figure}
+Lx ed Ly individuano il tunnel tra PE1 e PE2, L2 individua la VPN giusta. Come sapere a chi corrisponde L2? \\ Questa informazione la propaga BGP. Il messaggio BGP contiene RD, RT (per il route filtering), label che indica quale routing table usare. Per aggiungere un nuovo site, con questo approccio, è necessario ritoccare la configurazione del PE a cui si sta connettendo: gli deve comunicare gli RT di import ed export. Queste info vengono poi passate fra i router col protocollo di routing. \\ Come si può linkare una label ad una specifica tabella? Mediante MP-iBGB, il router PE2 indica nel messaggio di MP-iBGP update, quale label deve essere utilizzato come VPN label.
+
+\paragraph{Benefici di BGP/MPLS IP VPN} Per quanto riguarda il customer:
+\begin{itemize}
+    \item Sbarazzarsi e scaricare la gestione del routing al provider
+    \item Avere servizi di regolamento degli accesso (firewall ecc..)
+\end{itemize}
+Per quanto riguarda il provider:
+\begin{itemize}
+    \item Serve multipli clienti VPN con una infrastruttura comune
+    \item La gestione di VPN è nascosta nel core
+    \item Scala aggiungendo PE quando necessario
+\end{itemize}
+Il tunneling di MPLS gioca un ruolo chiave per consentire tutto questo.
 \end{document}
