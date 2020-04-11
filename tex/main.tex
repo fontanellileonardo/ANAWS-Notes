@@ -612,6 +612,16 @@ Per quanto riguarda la "address resolution": la address registration fornisce su
 \newpage
 
 \section{RPL}
+\subsection{Premessa}
+I tradizionali protocolli di routing, come RIP o OSPF, non sono più adatti per l'IoT, perché ci sono molti nuovi fattori da considerare:
+\begin{itemize}
+    \item Undetermined Link Model: i protocolli di routing tradizionali, sono progettati per tradizionali modelli IP (ipotesi 1 link-1 subnet). Se viene utilizzata una soluzione route-over, questa ipotesi non vale più e il protocollo di routing si deve adattare conseguentemente.
+    \item Nuove metriche di costo, non più soltanto il cammino più corto: ad esempio si può considerare anche la percentuale di perdita di comunicazione nel mezzo, efficienza energetica, e vincoli di ritardo.
+    \item Adattabilità a cambiamenti dinamici nella topologia del network.
+    \item Bisogno di cammini multipli verso una destinazione, per migliorare la robustezza della comunicazione.
+    \item Nodi limitati dal punto di vista computazionale.
+\end{itemize}
+\subsection{Concetti generali}
 Protocollo di routing L3 per le LLNs (low-power lossy networks). Basato sull'algoritmo \textit{Distance-Vector}, introduce alcune ottimizzazioni oltre alla nozione dei vincoli di routing ovvero la possibilità di non considerare solo il percorso a costo minore quando si fa routing ma imporre anche dei vincoli ai percorsi di rete. \\
 In questo protocollo supponiamo che i router non si scambino informazioni sullo stato dei link: nessuno ha conoscenza della topologia completa della rete, si conosce indirettamente sapendo la distanza dalle varie destinazioni. \\
 RPL costruisce un DODAG (Destination-Oriented Directed Acyclic Graph) ovvero un grafo in cui gli archi sono direzionati ed è privo di cicli. Ciascun nodo ha almeno un arco uscente. \\
@@ -639,29 +649,42 @@ Per i link invece avremo:
     \item Protocollo di routing usato nel link.
 \end{itemize}
 
-\subsection{Funzione Obiettivo}
+\subsection{Funzione Obiettivo (FO)}
 La FO definisce quali metriche/vincoli usare per trovare i percorsi a costo minimo in un'istanza RPL. Per realizzare ciò, i nodi devono conoscere sempre quali sono i suoi genitori (ovvero conoscere la loro posizione all'interno della rete) e il loro \textit{grado/rank} (uno scalare che indica la distanza di un nodo dal BR). Grazie al grado di un nodo, si può sapere se è genitore o figlio di un altro nodo. \\
-Il grado di un nodo viene deciso durante la fase di configurazione: il nodo che si vuole attaccare alla DODAG riceve il grado dai nodi a esso vicini; dopo aver scelto tra questi nodi i genitori, il nodo si assicura che il grado scelto sia maggiore di quello dei suoi genitori. Più nel dettaglio:
+Il Rank, nel dettaglio:
 \begin{itemize}
-    \item Il DODAG root inizia ad annunciare la sua presenza inviando messaggi DIO (DODAG Information Object) all'indirizzo link-local multicast.
-    \item I nodi RPL ricevono i messaggi DIO e li inoltrano per annunciare a loro volta la loro presenza.
-    \item Ricevendo i messaggi DIO, un nodo sa quali sono i nodi vicini a distanza di un hop. Tra questi:
-    \begin{itemize}
-        \item Determina un set di vicini candidati tra cui scegliere i genitori.
-        \item Sceglie un genitore preferito da impostare come percorso predefinito verso il DODAG root.
-        \item In base al grado ricevuto dai genitori, il nodo determina il suo grado personale.
-    \end{itemize}
+    \item Deve decrescere monotonicamente su ogni cammino verso il sink; in altre parole, il rank di un nodo è sempre più grande del rank dei suoi nodi parenti nel grafo.
+    \item Quando un nodo si unisce al network, riceve i messaggi dai suoi vicini che contengono i loro rank, quindi sceglie alcuni parenti tra questi vicini e deve settare il suo rank in modo che sia più grande del rank dei parenti.
+    \item Il rank fornisce un ordine parziale tra i nodi del grafo, quindi dati due nodi A e B sullo stesso cammino verso il sink, il nodo A è più vicino del nodo B se rank(A)$<$rank(B) (però se i due nodi non sono sullo stesso cammino verso il sink, non possono essere tratte conclusioni a riguardo, per questo si parla di ordinamento parziale).
+    \item Come viene calcolato è definito dalla Funzione Obiettivo.
+    \item I rank possono essere usati per evitare loops.
+    \item Non sono intesi come una misura del costo di un cammino verso il root: un nodo potrebbe avere più di un cammino verso il root, quindi una singola misurazione come il rank non è adatta a rappresentare il costo di un cammino. In più, è meglio mantenere queste due metriche separate; infatti, il costo del percorso è una metrica che potrebbe variare frequentemente, mentre il rank è una misura che vorremmo rimanesse stabile.
 \end{itemize}
 
+\subsection{Formazione del DODAG}
+Il Root DODAG comincia facendo advertising della sua presenza mandando dei \textit{DODAG} sull'indirizzo link-local multicast; questi messaggi contengono differenti parti di informazione, tra i quali: 
+\begin{itemize}
+    \item Identificatore dell'istanza DODAG
+    \item L'identificatore DODAG nell'instanza RPL
+    \item Istanza RPL dell'objective function
+    \item Rank del sender
+    \item ecc...
+\end{itemize}
+I nodi RPL ascoltano i messaggi DIO e li inoltrano per fare l'advertising della loro presenza e propagano le informazioni. Ricevendo un messaggio DIO, un nodo RPL impara il set di nodi nel vicinato con al più 1 hop. In questo set, basandosi sull'istanza RPL della funzione obiettivo, il nodo: 
+\begin{itemize}
+    \item Determina un set di vicini candidati tra cui scegliere i genitori.
+    \item Sceglie un genitore preferito da impostare come percorso predefinito verso il DODAG root.
+    \item In base al grado ricevuto dai genitori, il nodo determina il suo grado personale.
+\end{itemize}
 I messaggi DIO sono periodicamente mandati in broadcast nella rete per mantenere le informazioni di routing aggiornate. La propagazione dei messaggi DIO viene gestita dall'algoritmo \textit{Trickle}.
 
-\subsection{Algoritmo Trickle}
-Trickle è un algoritmo di tipo gossip la cui funzione è evitare che la rete sia saturata dai messaggi DIO. Questo viene ottenuto tramite due tecniche:
+\subsubsection{Algoritmo Trickle}
+Trickle è un algoritmo di tipo gossip che consente di propagare informazioni con un flooding controllato. \\ Questo viene ottenuto tramite due tecniche:
 \begin{itemize}
     \item \textbf{Broadcast Suppression:} vengono selezionati solo alcuni nodi che ritrasmettono, mentre gli altri non possono.
     \item \textbf{Adaptive Periodicity:} modifica la frequenza che indica ogni quanto vengono mandati i messaggi DIO.
 \end{itemize}
-Ciascun nodo ha un contatore \(\displaystyle c\) ed un timer \(\displaystyle\tau \in [\frac{I}{2}, I]\)
+Ciascun nodo ha un contatore \(\displaystyle c\) ed un timer \(\displaystyle\tau \in [\frac{I}{2}, I]\), quando il timer scade un nodo fa il broadcast del messaggio: ogni nodo conta il numero di messaggi \textit{consistenti} che vengono ricevuti nell'intervallo corrente e quando il timer scade, il nodo attiva il broadcast solo se il numero è minore di un \textit{threshold di ridondanza}. \\ Nello specifico, il funzionamento dell'algoritmo:
 \begin{enumerate}
     \item Inizialmente \(\displaystyle \tau = I\textsubscript{min}\) e aspetto i metadati.
     \item Se i metadati sono consistenti (rispettano le regole dei gradi/rank):
@@ -677,7 +700,18 @@ Ciascun nodo ha un contatore \(\displaystyle c\) ed un timer \(\displaystyle\tau
     \end{enumerate}
     \item altrimenti resetto tutto.
 \end{enumerate}
-La costante K è detta soglia di ridondanza e indica il numero massimo di messaggi DIO che possono essere ascoltati in un determinato intervallo (misurato da Trickle). Oltre questa soglia si ha la soppressione dei messaggi.
+La costante K è detta soglia di ridondanza e indica il numero massimo di messaggi DIO che possono essere ascoltati in un determinato intervallo (misurato da Trickle). Oltre questa soglia si ha la soppressione dei messaggi. \\
+\paragraph{Inconsistenza di Routing} Trickle utilizza il concetto di messaggi \textit{consistenti} e \textit{inconsistenti}. Nel nostro caso, i messaggi inconsistenti si riferiscono a cambiamenti nella topologia del network. Il sink potrebbe rilevare inconsistenza di route, in quel caso può mandare nuovi messaggi DIO per costruire un nuovo DODAG. \\ I messaggi DIO includono un altro pezzo di informazione: la versione DODAG. Quindi, i nuovi messaggi DIO includono un nuovo numero della versione DODAG; inizia così la procedura per unirsi ad un nuovo DODAG comportandosi come se avesse ricevuto un nuovo messaggio inconsistente, resettando l'intervallo Trickle, per consentire una costruzione veloce di un nuovo DODAG. \\ Inoltre, un nodo stesso potrebbe autonomamente rilevare inconsistenze di route: ad esempio, potrebbe osservare che il rank di un parente è cambiato e se il nuovo rank è manggiore del proprio rank, si è rilevata un'inconsistenza. In questo caso, il nodo si adatta alla nuova topologia e l'intervallo di Trickle è resettato. Informazioni riguardanti il rank del nodo possono essere incluse nel messaggio generato dal nodo, inserendolo nell'header IPv6 nell'opzione \textit{hop-by-hop}.
+
+\paragraph{Rilevazione dei loop} Può essere eseguito dai nodi mentre osservano inconsistenze nel rank dei parenti. Considerando la seguente situazione d'esempio:
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.4]{figures/loop example.png}
+\includegraphics[scale=0.4]{figures/loop example 2.png}
+\caption{Esempio topologia in loop}
+\end{figure}
+In questo esempio, il link tra BR ed R1 si rompe. Quindi, R1 si aggancia ad R3, cambiando il suo rank a 9. Tuttavia, R1 è ancora parente di R2, che è, a sua volta è parente di R3: si è formato un loop. \\ In questa condizione, il loop può essere rilevato quando R2, per esempio, manda un messaggio al root, utilizzando R1 come prossimo hop. R1, infatti, riceverà il messaggio in cui il rank sarà più piccolo del suo; questa però risulta essere un'inconsistenza perché messaggi che attraversano un cammino verso il root dovrebbero sempre trovare rank decrescenti. \\ Si crea anche un problema di "conteggio all'infinito": dall'esempio precedente, R1 inizierà a mandare i messaggi DIO con il suo rank aggiornato; questi messaggi saranno ricevuti da R2. Quest'ultimo non sa che è presente un loop e andrà ad incrementare il suo rank in modo da mantenere la regola che il rank del parent deve essere più piccola di quella dei figli. A sua volta, R2 inizierà a mandare messaggi DIO, con il suo rank aggiornato, che verranno ricevuti da R3. Questo, farà la solita cosa, incrementando il rank e mandando ancora messaggi DIO. Questi messaggi saranno ricevuti da R1 che incrementerà ancora il rank. \\ Questa procedura si ripeterà all'infinito e i nodi continueranno a incrementare il rank in maniera indefinita. \\ I loop possono essere rotti e il problema del conteggio all'infinito può essere evitato andando a definire un valore \textit{Max Depth}: i rank non potranno essere più grandi di questo valore e quando un nodo vede che il suo parent ha raggiunto il massimo valore del rank, che potrebbe accadere dopo che si è verificato il fenomeno sopracitato, si stacca dal parent, rompendo il possibile loop. \\ Il "conto all'infinito" può essere evitato imponendo che il nodo setti il suo rank al massimo valore appena questo osserva che un cammino verso il root è fallito (questo è simile al "root poisoning", ovvero quando un router setta il costo verso una destinazione a infinito). Nel precedente esempio, R1 dovrebbe settare il suo rank al valore massimo quando il link verso BR fallisce.
+
 
 \subsection{Comunicazioni Point-to-Point e Point-to-Multipoint}
 Fino ad ora abbiamo considerato solo comunicazioni da nodi verso la radice del DODAG. In RPL è possibile avere comunicazioni \textbf{punto-a-punto} (messaggi dalla radice ai nodi) oppure \textbf{punto-a-multipunto} (da un nodo ad un altro in un altro DODAG). Queste caratterisitiche sono supportate da messaggi speciali chiamati \textbf{DAO - Destination Advertisement Object}, che sono usati dai nodi per avvisare che sono raggiungibili tramite un certo percorso.\\
@@ -697,6 +731,7 @@ Esistono due modalità di implementazione:
 
 \newpage
 \section{CoAP}
+\subsection{Concetti generali}
 Constrained Application Protocol, è un protocollo web generico orientato a requisiti specifici (esempio quelli delle LLNs). Il suo scopo principale è quello di realizzare un protocollo applicazione (L5) per servizi web (in comune con HTTP) ma ottimizzato per le applicazioni \textit{Machine-to-Machine (M2M)}.\\
 Il livello CoAP è intermedio fra UDP e il livello 5 (applicazione) composto da due sottolivelli: uno gestisce le richieste/risposte, l'altro fornisce il supporto allo scambio di messaggi asincroni. I messaggi asincroni servono per poter inviare un messaggio al client anche quando questo non ha effettuato alcuna richiesta (non è possibile in TCP).\\
 \begin{figure}[H]
@@ -704,14 +739,50 @@ Il livello CoAP è intermedio fra UDP e il livello 5 (applicazione) composto da 
 \includegraphics[scale=0.4]{figures/coaplayer.jpg}
 \caption{Posizione del livello CoAP}
 \end{figure}
-CoAP utilizza un modello di interazione Request/Response (simile ad HTTP) asincrona, con alcune opzioni per l'affidabilità. Una trasmissione non-affidabile viene iniziata dal mittente che invia un messaggio NON al quale non riceverà risposta. Una trasmissione affidabile invece, viene iniziata tramite l'invio di un messaggio CON. Il ricevente può:
+CoAP utilizza un modello di interazione Request/Response (simile ad HTTP) asincrona, con alcune opzioni per l'affidabilità. \\ Divide il layer applicazione in 2 sotto-layer:
+\begin{itemize}
+    \item Il top layer è il \textit{Request/Response Layer}: i messaggi sono codificati come richieste o risposte (similarmente a HTTP) e specificano l'identificatore della risorsa target e ulteriori informazioni.
+    \item Sotto questo layer, è presente il \textit{Asynchronous Message Layer}, che fornisce 4 tipi di messaggi in cui le richieste e risposte possono essere avvolte:
+    \begin{itemize}
+        \item \textit{Confirmable Messages (CON)}: richieste e risposte che richiedono un acknowledgement.
+        \item \textit{Non-Confirmable Messages (NON)}: richieste e risposte che non richiedono acknowledgement.
+        \item \textit{Acknowledgement Messages (ACK)}
+        \item \textit{Reset Messages (RST)}
+    \end{itemize}
+\end{itemize}
+Una trasmissione non-affidabile viene iniziata dal mittente che invia un messaggio NON al quale non riceverà risposta. Una trasmissione affidabile invece, viene iniziata tramite l'invio di un messaggio CON. Il ricevente può:
 \begin{itemize}
     \item Rispondere con ACK oppure
     \item Rifiutare con RST.
 \end{itemize}
-Il mittente ripete il messaggio CON finchè non riceve ACK o RST oppure finchè non scade un timeout (solitamente 2 secondi).
+Il mittente ripete il messaggio CON finchè non riceve ACK o RST oppure finchè non scade un timeout (solitamente 2 secondi). \\ CoAP utilizza UDP al layer di trasporto, ma al Layer dei messaggi asincroni è implementato un meccanismo leggero di affidabilità:
+\begin{itemize}
+    \item ACK e ritrasmissioni con un approccio Stop-and-wait e back-off esponenziale per il timer di ritrasmissione per messaggi CON
+    \item Rilevazione di duplicati basata su identificatori a 16 bits assegnati a messaggi (tipo numeri di sequenza), chiamati Message IDs, sia per messaggi CON che NON.
+\end{itemize}
 
-\paragraph{Modello Request/Response} Modello simile all'HTTP. Una richiesta include un metodo, l'URI di una risorsa e, opzionalmente, metadati (opzioni CoAP). I possibili metodi per una CoAP Request sono:
+\subsection{Trasmissione dei messaggi}
+\paragraph{Trasmissione affidabile} 
+\begin{itemize}
+    \item Iniziata mandando un messaggio CON.
+    \item Il destinatario può: mandare un ACK oppure rifiutare il messaggio, sia esplicitamente mandando un RST oppure implicitamente, ignorandolo.
+    \item I messaggi CON e ACK hanno lo stesso Message ID di 16 bits.
+\end{itemize}
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{figures/coap trasmissione affidabile.png}
+\caption{CoAP - Trasmissione affidabile}
+\end{figure}
+
+\paragraph{Trasmissione inaffidabile}
+Iniziata mandando un messaggio NON. Il destinatario non deve fare acknowledgement del messaggio.
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{figures/coap trasmissione inaffidabile.png}
+\caption{CoAP - Trasmissione inaffidabile}
+\end{figure}
+
+\paragraph{Modello Request/Response} Modello simile all'HTTP. \\ Una richiesta include un metodo, l'URI di una risorsa e, opzionalmente, metadati (opzioni CoAP). \\ Una risposta specifica il codice, payload e altre informazioni opzionali. I \textit{Tokens} fanno match tra richieste e risposte (da non confondere con i Message ID). In HTTP i Token non sono necessari dato che le richieste e risposte sono già "taggati" dalla connessione TCP. \\ I possibili metodi per una CoAP Request sono:
 \begin{itemize}
     \item GET: richiede una rappresentazione dello stato di una risorsa.
     \item POST: creazione di una risorsa.
@@ -724,9 +795,83 @@ Le CoAP Response contengono un codice, il payload e, al solito, meta-dati opzion
     \item Client-error (codice 4.xx)
     \item Server-error (codice 5.xx): il server è consapevole di aver sbagliato oppure è impossibilitato ad eseguire la richiesta ricevuta.
 \end{itemize}
+Se una richiesta è trasportata con un messaggio CON, la risposta potrebbe essere trasportata nel corrispondente ACK:
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{figures/coap risposta ack.png}
+\caption{CoAP - Risposta a richiesta tramite ACK}
+\end{figure}
+Oppure, potrebbe essere inviata in un differente messaggio CON:
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{figures/coap risposta con.png}
+\caption{CoAP - Risposta a richiesta in differente CON}
+\end{figure}
+Se una richiesta è trasportata in un messaggio NON:
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{figures/coap richiesta non.png}
+\caption{CoAP - Richiesta NON}
+\end{figure}
+La risposta è trasportata in un messaggio NON:
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{figures/coap risposta non.png}
+\caption{CoAP - Risposta NON}
+\end{figure}
+C'è un terzo tipo di messaggio: \textit{Vuoto}. I messaggi vuoti non sono nè una Richiesta nè una Risposta, sono identificati da un codice speciale. Un messaggio vuoto in un CON viene usato per "richiedere" un RST: questa feature è chiamata \textit{CoAP ping}. 
 
-\paragraph{CoAP Proxy} Potremmo voler implementare un intermediario (proxy) che si pone fra i client ed i server il cui compito principale sarebbe quello di inoltrare richieste/risposte ai destinatari. Un Proxy CoAP potrebbe anche svolgere funzioni di \textit{caching}, traduzione protocolli oppure traduzioni nomi. \\
-Nel caso della traduzione protocolli si ha un Cross-Protocol Proxy (o Cross-Proxy).
+\paragraph{Formato del Messaggio} 
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{figures/coap formato messaggi.png}
+\caption{CoAP - Formato Messaggi}
+\end{figure}
+Header di grandezza fissata di 4 byte.
+\begin{itemize}
+    \item \textbf{Ver}: versione del protocollo (attualmente $=$ 1).
+    \item \textbf{T}: Tipo del messaggio
+    \begin{itemize}
+        \item \textit{0}: CON
+        \item \textit{1}: NON
+        \item \textit{2}: ACK
+        \item \textit{3}: RST
+    \end{itemize}
+    \item \textbf{TKL}: Lunghezza Token (i token possono avere grandezza variabile)
+    \item \textbf{Code}: 
+    \begin{itemize}
+        \item \textit{Class} (primi 3 bit): Request = 0, Success = 2, Client Error = 4, Server Error = 5.
+        \item \textit{Detail} (ultimi 5 bits): specifica il metodo (ad esempio 0.01 è GET) o il codice di risposta (ad esempio, 2.04 è "Created", che notifica il successo di una PUT).
+        \item Il codice speciale 0.00 denota un messaggio \textit{Empty}.
+    \end{itemize}
+    \item \textbf{Message ID}
+\end{itemize}
+Il campo \textbf{Options} codifica informazioni aggiuntive:
+tra cui, il target URI: \textit{"coap://host[:port]/path?query-options"}. L'URi è codificato in 4 campi:
+\begin{itemize}
+    \item \textit{Uri-Host}
+    \item \textit{Uri-Port}
+    \item \textit{Uri-Path}
+    \item \textit{Uri-Query-Options}
+\end{itemize}
+Utilizzare 4 campi, è più efficiente di utilizzare un solo campo, dato che dovremmo parsare il contenuto per ottenere pezzi separati di informazione. Mentre, in questo caso, abbiamo già campi separati: non abbiamo costi di parsing. 
+
+\paragraph{CoAP Proxy} Altre informazioni codificate nel campo \textit{Options} riguardano il proxying.
+\begin{itemize}
+    \item \textit{Proxy-URI}: identifica il proxy server che si vuole utilizzare.
+    \item \textit{Proxy-Scheme}: codifica sia "CoAP" che "HTTP": se il valore si differenzia dal tipo della richiesta corrente, significa che stiamo chiedendo al proxy di fare una traduzione da un protocollo all'altro (cross-protocol proxy).
+\end{itemize}
+Potremmo voler implementare un intermediario (proxy) che si pone fra i client ed i server il cui compito principale sarebbe quello di inoltrare richieste/risposte ai destinatari. Un Proxy CoAP potrebbe anche svolgere funzioni di \textit{caching}, traduzione protocolli oppure traduzioni nomi. \\ Esistono due classi di proxy:
+\begin{itemize}
+    \item \textit{Forward-proxy}: effettua richieste al posto del client. Endpoint selezionato dal client ed effettua le necessarie traduzioni.
+    \item \textit{Reverse-proxy}: soddisfa le richieste al posto di uno o più serer. Trasparente al client ed effettua le necessarie traduzioni.
+\end{itemize}
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.4]{figures/forward proxy.png}
+\includegraphics[scale=0.4]{figures/reverse proxy.png}
+\caption{CoAP - Forward e Reverse Proxy}
+\end{figure}
 
 \subsection{Resource Observing}
 Client e Server si scambiano la rappresentazione (stati) delle risorse grazie ad un modello publish/subscribe. Un Client interessato a ricevere aggiornamenti su una risorsa si "iscrive" (observe) presso il server che gestisce quella risorsa. L'approccio è di tipo \textit{best-effort}. Definiamo alcuni termini:
@@ -736,6 +881,32 @@ Client e Server si scambiano la rappresentazione (stati) delle risorse grazie ad
     \item Registrazione: una richiesta GET \textit{estesa}.
     \item Notifica: una risposta CoAP aggiuntiva inviata ai client registrati ogni qualvolta lo stato di una risorsa cambia.
 \end{itemize}
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.4]{figures/esempio observe.png}
+\caption{CoAP - Esempio Observe}
+\end{figure}
+Una volta che un client si è registrato per l'osservazione di una risorsa, lo standard non specifica come de-registrarsi, ma ci sono differenti possibili strategie:
+\begin{itemize}
+    \item Una possibile soluzione sarebbe quella di mandare una nuova richiesta per la stessa risorsa, includendo una nuova opzione che specifichi che il client vorrebbe de-registrarsi.
+    \item Un'altra soluzione, è quella di mandare un messaggio RST che viene interpretato come una richiesta di de-registrazione.
+    \item Le notifiche sono seguite da ACK: basandosi su questa feature, si potrebbe implementare una logica che interpreti la situazione in cui si ricevano ACK multipli come un'implicita de-registrazione (potrebbe anche accadere, per esempio, per un fallimento di un cliente). Questa soluzione potrebbe comunque portare ad errori: un osservatore potrebbe sempre rinnovare la sua registrazione dopo un po' di tempo che non si ricevono notifiche. Con questo intento, è possibile utilizzare un'opzione che consenta all'osservatore di ottenere una notifica ogni X secondi, anche se la risorsa osservata non è cambiata: questo consente al cliente di sapere che non è stato rimosso per errore dal set degli osservatori dal CoAP server. \\ Più in generale, è possibile avere opzioni QoS per riceve notifiche temporizzate.
+    \item È inoltre possibile utilizzare un parametro \textit{Max Age} per settare a priori la durata massima di una registrazione
+\end{itemize}
+Nodi intermedi possono fare la observing di risorse al posto dei clients: un client può quindi registrarsi per una observe presso ad un proxy e quest'ultimo, a sua volta, si registra al CoAP Server finale. Il Proxy può gestire client multipli contemporaneamente, ma si registra al nodo CoAP solo una volta, andando a ridurre il carico sul nodo (vincolato).
+
+\subsection{Resource Discovery}
+All'inizio, è possibile scoprire server CoAP in un network di sensori wireless mandando un messaggio CoAP speciale: \textit{Multicast CoAP Discovery Request}. Questo messaggio è indirizzato all'indirizzo IPv6 multicast speciale \textit{"All CoAP Nodes} con porta 5683. Questa operazione di Discovery è limitata allo scope link-local. \\ A questo punto è possibile scoprire quali risorse sono esposte da parte di un CoAP server. Attraverso il well-known relative URI: \textit{"/.well-known/core"}, che è l'entry point di default per richiedere la lista di risorse hostate da un server. \\ La lista di risorse è rappresentata con uno speciale linguaggio chiamato \textit{Link Format}, progettato dal gruppo CoRE (Constrained Restful Environment). \\ Link Format è una collezione di link (definito come relative URI di una risorsa) più un numero di attributi separati da punti. \\ Esempio di Link Format: \textit{</sensor/temp>;if="sensor"}. Simile al formato dei valori degli header HTTP. Attributi possibili:
+\begin{itemize}
+    \item \textbf{Resource Type ('rt')}: Stringa opaca utilizzata per assegnare specifici tipi semantici ad una risorsa.
+    \item \textbf{Interface Description ('if')}: Stringa opaca utilizzata per fornire specifiche definizioni di interfacce utilizzate per interagire con la risorsa target.
+    \item \textbf{Maximum Size Estimate ('sz')}: un'indicazione della massima grandezza della rappresentazione della risorsa.
+    \item \textbf{Content Format ('ct')}: fornisce un indizio riguardo al formato dei contenuti che dovrebbe ritornare la risorsa.
+    \item \textbf{Observable ('obs')}: un indizio che indica che la destinazione di un link è utile per l'osservazione. 
+\end{itemize}
+Per attributi opachi, si intende che lo standard non definisce specifici valori per alcuni attributi e vengono definiti dalla specifica applicazione. \\ È possibile filtrare i risultati ritornati dopo una richiesta al well-known relative URI. Per esempio, \textit{"GET /.well-known/core?href=/foo*"} ritornano tutte le risorse il cui nome comincia per foo. \textit{"GET /.well-known/core?rt=temperature"} invece, ritorna tutte le risorse associate al tipo di risorsa "temperature". \\ Le risorse possono essere raggruppate in containers, per esempio: \\ \textit{"REQ: GET/.well-known/core" \\ "RES: 2.05 Content \\ $<$/sensors$>$;ct=40"} \\ Il container di tutte le risorse si indica attraverso: \textit{/.well-known/core}. \\ L'ultima linea contiene l'attributo di link \textit{Content Type ('ct')} che specifica il formato del contenuto ritornato dalla risorsa (per esempio "text/plain" o "application/json"). Il valore 40 significa "application/link-format", ovvero che la risorsa ritorna una lista di altre risorse nel Link Format. In altre parole, la risorsa \textit{/sensors} è un container di altre risorse: una query ad un container ritorna una descrizione Link Format della risorsa nel container. \\ 
+Un altro esempio:\\ \textit{"REQ: GET/sensors" \\ "RES: 2.05 Content \\ $<$/sensors/temp$>$;rt="temperature";if="sensor", \\ $<$/sensors/light$>$;rt="light";if="sensor""} \\ 
+Questo raggruppamento di risorse in container e sotto-container porta ad un'organizzazione gerarchica delle risorse (in realtà, non sono presenti gerarchie nei CoAP server, le risorse sono piatte, la gerarchia è soltant come viene vista dal punto di vista della query).
 
 \newpage
 \section{QoS - Quality of Service}
@@ -1297,7 +1468,8 @@ Il problema delle cosiddette "Corporate WANs" consiste nel voler collegare fra l
     \includegraphics[scale=0.5]{figures/peer-to-peer approach.png}
     \caption{Peer-to-peer approach}\label{figura:peer}
 \end{figure}
-Il problema di questo approccio riguarda la figura \ref{figura:peer}, in cui i colori gialli delle nuvole indicano che appartengono ad altri clienti rispetto a quelli delle nuvole grigie: 5 siti, 2 customer. Questi clienti fanno un addressing indipendente, ci sono degli overlapping. Quindi, i problemi sono: come realizzare private addressing e isolamento del traffico. \\ Una soluzione potrebbe essere quella di inserire dei filtri nei Provider Edge Routers. Un pacchetto originato, ad esempio da 10.2.0.0 "grigio", se è destinato ad un sito "grigio" viene permesso, altrimenti viene filtrato. In pratica, si configura una grande ACL all'interfaccia di ingresso di ogni PER, per controllare se il traffico può entrare nella rete o meno: questo in base al fatto che sia indirizzato ad uno dei siti consentiti o meno (assumendo che si sappia la source). Questa non è una soluzione buona, dato che si considera la network del provider come un "single routing domain", non si possono avere più site con lo stesso indirizzo: si perderebbe così il private addressing oppure, al più, dovremmo implementare delle complicate traduzioni. Si raggiungerebbe comunque un isolamento del traffico, ma ad un costo molto alto, dato che si dovrebbero mantenere dei complessi ACL ad ogni PE. Questa configurazione dovrebbe poi essere continuamente revisionata, dato che ogni volta che cambia la topologia di rete, si devono riconfigurare i PE (le loro ACL). Le ACL, inoltre, rallentano il routing e aggiungono latenza. Quindi, questa soluzione è di difficile applicazione. \\ Cercando un'altra soluzione, l'effetto che si vorrebbe ottenere, è quello che se c'è un pacchetto che va da CE a PE, questo venga consegnato solo se la routing table che è usata per quel pacchetto, che include solo gli indirizzi di destinazione degli altri siti dello stesso customer, sa qual è il next hop di quel pacchetto. Quindi, sempre nella figura \ref{figura:peer}, se consideriamo il site 10.3.0.0/16, appartenente ad un cliente "giallo", se questo manda un pacchetto con destinazione 10.2.0.0/16, ci si aspetterebbe che il PE a cui è attaccato filtri questo pacchetto, in quanto nella rete del cliente giallo, non ci sono sites con tale indirizzo. Come si può ottenere questo effetto? \\ La soluzione è tenere diverse routing table nel PE, una per ogni customer. E' come se si considerassero più router logici, uno per ogni cliente. Si controlla nella tabella giusta, in base al cliente che ti sta inviando quel pacchetto. Questo si chiama \textit{Constrain Routing}, perché i PE si scambiano informazioni, che saranno diverse per diversi clienti, quindi durante lo scambio delle informazioni occorrerà mettere informazioni relative ad un certo cliente, nella sua routing table. C'è ancora un problema di overlapping, quando una rete manda un pacchetto con un indirizzo, presente in 2 clienti diversi, si crea un problema di forwarding per siti con indirizzi in overlapping. La soluzione quindi è quella di utilizzare un tunneling tra provider edge router. È una soluzione standard che troviamo negli RFC, chiamata \textit{BGP/MPLS IP Layer 3 VPN}.
+Il problema di questo approccio riguarda la figura \ref{figura:peer}, in cui i colori gialli delle nuvole indicano che appartengono ad altri clienti rispetto a quelli delle nuvole grigie: 5 siti, 2 clienti. Questi clienti fanno un indirizzamento indipendente, ci sono deglle sovrapposizioni. Quindi, i problemi sono: come realizzare private addressing e isolamento del traffico. \\
+Una soluzione potrebbe essere quella di inserire dei filtri nei Provider Edge Routers. Un pacchetto originato, ad esempio da 10.2.0.0 "grigio", se è destinato ad un sito "grigio" viene permesso, altrimenti viene filtrato. In pratica, si configura una grande ACL all'interfaccia di ingresso di ogni PER, per controllare se il traffico può entrare nella rete o meno: questo in base al fatto che sia indirizzato ad uno dei siti consentiti o meno (assumendo che si sappia la source). Questa non è una soluzione buona, dato che si considera la network del provider come un "single routing domain", non si possono avere più site con lo stesso indirizzo: si perderebbe così il private addressing oppure, al più, dovremmo implementare delle complicate traduzioni. Si raggiungerebbe comunque un isolamento del traffico, ma ad un costo molto alto, dato che si dovrebbero mantenere dei complessi ACL ad ogni PE. Questa configurazione dovrebbe poi essere continuamente revisionata, dato che ogni volta che cambia la topologia di rete, si devono riconfigurare i PE (le loro ACL). Le ACL, inoltre, rallentano il routing e aggiungono latenza. Quindi, questa soluzione è di difficile applicazione. \\ Cercando un'altra soluzione, l'effetto che si vorrebbe ottenere, è quello che se c'è un pacchetto che va da CE a PE, questo venga consegnato solo se la routing table che è usata per quel pacchetto, che include solo gli indirizzi di destinazione degli altri siti dello stesso customer, sa qual è il next hop di quel pacchetto. Quindi, sempre nella figura \ref{figura:peer}, se consideriamo il site 10.3.0.0/16, appartenente ad un cliente "giallo", se questo manda un pacchetto con destinazione 10.2.0.0/16, ci si aspetterebbe che il PE a cui è attaccato filtri questo pacchetto, in quanto nella rete del cliente giallo, non ci sono sites con tale indirizzo. Come si può ottenere questo effetto? \\ La soluzione è tenere diverse routing table nel PE, una per ogni customer. E' come se si considerassero più router logici, uno per ogni cliente. Si controlla nella tabella giusta, in base al cliente che ti sta inviando quel pacchetto. Questo si chiama \textit{Constrain Routing}, perché i PE si scambiano informazioni, che saranno diverse per diversi clienti, quindi durante lo scambio delle informazioni occorrerà mettere informazioni relative ad un certo cliente, nella sua routing table. C'è ancora un problema di overlapping, quando una rete manda un pacchetto con un indirizzo, presente in 2 clienti diversi, si crea un problema di forwarding per siti con indirizzi in overlapping. La soluzione quindi è quella di utilizzare un tunneling tra provider edge router. È una soluzione standard che troviamo negli RFC, chiamata \textit{BGP/MPLS IP Layer 3 VPN}.
 
 \subsection{BGP/MPLS IP VPN} Considerando lo scenario presente nella seguente figura:
 \begin{figure}[H]
