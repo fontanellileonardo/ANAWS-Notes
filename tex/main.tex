@@ -288,16 +288,11 @@ In questa sezione ci sono i veri cambiamenti rispetto ad IPv4: molti protocolli 
 Basato sulla versione ICMP di IPv4, con le dovute modifiche per adattarsi al nuovo protocollo. Fornisce funzioni diagnostiche e di gestione dell'errore.\\
 I messaggi ICMPv6 sono incapsulati in pacchetti IPv6 con il valore \textit{Next Header 58}. Questa nuova versione fornisce anche una nuova funzionalità denominata \textit{Neighbour Discovery Protocol}, che offre procedure per:
 \begin{itemize}
-    \item Trovare i router.
-    \item Risoluzione di indirizzi a livello collegamento (\textit{livello 2}).
-    \item Rilevare possibili indirizzi duplicati.
+    \item Trovare i router (Router Discovery)
+    \item Risoluzione di indirizzi a livello collegamento (\textit{livello 2}), (Address Resolution).
+    \item Rilevare possibili indirizzi duplicati (Duplicate Address Detection).
 \end{itemize}
-Nella versione IPv4 si poteva tener traccia della raggiungibilità dei vicini solo grazie ad ARP.\\ Il protocollo consiste in un set di operazioni:
-\begin{itemize}
-    \item Router Discovery
-    \item Address Resolution
-    \item Duplicate Address Detection
-\end{itemize}
+Nella versione IPv4 si poteva tener traccia della raggiungibilità dei vicini solo grazie ad ARP.
 
 \subsubsection{Formato del messaggio}
 Come già accennato, questo protocollo genera messaggi che sono trasmessi come payload IPv6 con extension number 58, che identifica ICMPv6.
@@ -330,7 +325,7 @@ E' una procedura definita interamente all'interno di ICMPv6 in modo da soddisfar
     \item Address Resolution: è un set di funzioni che servono a risolvere un indirizzo IP in un indirizzo layer 2. Sostanzialmente possono verificarsi 2 casi:
     \item Stateless Address Autoconfiguration (SLAAC)
     \item Router Discovery (RD)
-    \item Neighbour Unreachability Detection (NUD): per scoprire se qualche vicino non è più raggiungibile
+    \item Neighbour Unreachability Detection (NUD): per scoprire se qualche vicino non è più raggiungibile. Viene implementata con una cache delle traduzioni L2-L3. Ciascuna entrata ha un \textit{lifetime} per controllare se un nodo è ancora raggiungibile.
     \item Duplicate Address Detection (DAD)
     \item Redirection
 \end{itemize}
@@ -339,6 +334,7 @@ Alcune di queste funzionalità sono disponibili anche per IPv4, ma sono implemen
 
 \subsubsection{Router Discovery}
 Periodicamente, i router inviano dei messaggi di \textit{Router Advertisement} all'indirizzo \textit{multicast all nodes} (codice FF02::1). Questi messaggi contengono le informazioni necessarie ad un host che si vuole unire alla rete per autoconfigurarsi sulla stessa. I RA possono essere richiesti esplicitamente da un nodo tramite un messaggio \textit{Router Solicitation}, sempre all'indirizzo multicast (codice FF02::2).
+
 \begin{figure}[H]
 \centering
 \includegraphics[scale=0.3]{figures/router discovery.png}
@@ -347,7 +343,7 @@ Periodicamente, i router inviano dei messaggi di \textit{Router Advertisement} a
 Si vanno ora ad analizzare alcuni campi all'interno del messaggio di Router Advertisement:
 \begin{itemize}
     \item Type = 134, Code = 0
-    \item \textbf{Cur Ho Limit:} c'è un valore di default per hop limit. Non si può, però, usare un hop limit minore del diametro della nostra rete altrimenti, ovviamente, i pacchetti non arriverebbero al confine. Mentre, non ci sono motivi per impostare un hop limit maggiore del diametro della nostra rete.
+    \item Cur Ho Limit: c'è un valore di default per hop limit. Non si può, però, usare un hop limit minore del diametro della nostra rete altrimenti, ovviamente, i pacchetti non arriverebbero al confine. Mentre, non ci sono motivi per impostare un hop limit maggiore del diametro della nostra rete.
     \item \textbf{Time:} parametro di configurazione.
     \item \textbf{M flag:} 
         \begin{itemize}
@@ -355,31 +351,34 @@ Si vanno ora ad analizzare alcuni campi all'interno del messaggio di Router Adve
             \item 1: configutazione stateful (DHCP): in questo caso non si può scegliere da soli il proprio indirizzo. Si utilizza il servizio DHCP.
         \end{itemize}
     \item \textbf{Prf flag (2 bits):} Preferenza riguardo al default router. (Gateway in IPv4)
-    \item Options
+    \item \textbf{Options:}
         \begin{itemize}
-            \item Source link-layer address
+            \item Source link-layer address: MAC del gateway per uscire dalla rete.
             \item MTU
-            \item Prefix information
+            \item Prefix information: il router inserisce il prefisso della sottorete corrente (link) in modo tale che i nodi che ricevono questo messaggio possano usare il prefisso specificato.
         \end{itemize}
-    \item \textbf{Prefix information option:} informazione relativa al prefix, ce n'è una per ogni prefix. Type e length specificano il tipo e la lunghezza del prefisso. Prefix length è equivalente alla mask in IPv4.
-    \item \textbf{L flag:} on-link determination
-    \item \textbf{A flag:} se settato, questo flag indica che deve essere eseguito il Duplicate Address Detenction
-    \item \textbf{Address lifetime}.
+    \item Prefix information option: informazione relativa al prefix, ce n'è una per ogni prefix. Type e length specificano il tipo e la lunghezza del prefisso. Prefix length è equivalente alla mask in IPv4.
+    \item \textbf{L flag:} on-link determination. Se L=1, un nodo sa che se un altro ha lo stesso prefisso allora può considerarlo "vicino" e quindi ci può comunicare direttamente. Se L=0 invece deve passare per forza dal router.
+    \item A flag: se settato, questo flag indica che deve essere eseguito il Duplicate Address Detection.
+    \item \textbf{Address lifetime:} periodo di validità dell'indirizzo.
+    \item \textbf{Preferred lifetime:} periodo dopo il quale un indirizzo diventa deprecato.
 \end{itemize}
 
 \subsection{Configurazione dell'indirizzo}
 La configurazione dell'indirizzo può essere fatta in 2 modi, come già accennato precedentemente:
 \begin{itemize}
     \item \textbf{Stateful}: DHCPv6
-    \item \textbf{Stateless}: Senza nessuna configurazione manuale da parte dell'host. \\ L'interface ID è generato dall'indirizzo MAC (o scelto randomicamente). Il prefisso è imparato dal messaggio di Routing Advertisement.
+    \item \textbf{Stateless} (autoconfigurazione): Senza nessuna configurazione manuale da parte dell'host. \\ L'interface ID è generato dall'indirizzo MAC (o scelto randomicamente). Il prefisso è imparato dal messaggio di Routing Advertisement.
 \end{itemize}
 L'indirizzo passa attraverso differenti stati:
 \begin{itemize}
-    \item \textbf{Tentative Address (provvisorio):} L'unicità in un link deve essere verificata: un'interfaccia scarta pacchetti ricevuti che siano indirizzati ad un indirizzo provvisorio, ma accetta pacchetti di Neighbor Discovery.
-    \item \textbf{Preferred Address:} l'utilizzo da parte di protocolli di più alto livello è illimitato.
+    \item \textbf{Tentative Address (provvisorio):} L'unicità in un link deve essere verificata. Il nodo in questione manda una \textit{Neighbour Solicitation} contenente il Tentative Address in multicast avente come groupID gli ultimi 24 bit della sua interfaceID per scoprire se esiste un altro host con lo stesso indirizzo.\\
+    Se non riceve risposta, allora l'indiirzzo è valido e passa allo stato Preferred. Un'interfaccia scarta pacchetti ricevuti che siano indirizzati ad un indirizzo provvisorio, ma accetta pacchetti di Neighbor Discovery.
+    \item \textbf{Preferred Address:} l'utilizzo da parte di protocolli di più alto livello è illimitato. Quando scade il \textit{preferred lifetime} l'indirizzo diventa Deprecato e quindi potrtebbe essere riassegnato.
     \item \textbf{Deprecated Address:} l'utilizzo di questo tipo di indirizzo è sconsigliato ma non proibito.
     \item \textbf{Valid Address:} è un indirizzo che può essere Preferred o Deprecated.
 \end{itemize}
+
 Questo tipo di lifetime viene definito in modo da dare il tempo di controllare che non ci siano collisioni sullo stesso link. \\ Si vanno quindi a definire gli step per configurare un indirizzo IPv6:
 \begin{itemize}
     \item Si genera un indirizzo link-local appendendo l'identificatore di interfaccia al prefisso del link local \textit{FE80::/10}. L'indirizzo link-local è \textit{tentative}.
@@ -645,16 +644,16 @@ Per i link invece avremo:
 La FO definisce quali metriche/vincoli usare per trovare i percorsi a costo minimo in un'istanza RPL. Per realizzare ciò, i nodi devono conoscere sempre quali sono i suoi genitori (ovvero conoscere la loro posizione all'interno della rete) e il loro \textit{grado/rank} (uno scalare che indica la distanza di un nodo dal BR). Grazie al grado di un nodo, si può sapere se è genitore o figlio di un altro nodo. \\
 Il Rank, nel dettaglio:
 \begin{itemize}
-    \item Deve decrescere monotonicamente su ogni cammino verso il sink; in altre parole, il rank di un nodo è sempre più grande del rank dei suoi nodi parenti nel grafo.
+    \item Deve decrescere monotonicamente su ogni cammino verso il BR; in altre parole, il rank di un nodo è sempre più grande del rank dei suoi nodi genitori nel grafo.
     \item Quando un nodo si unisce al network, riceve i messaggi dai suoi vicini che contengono i loro rank, quindi sceglie alcuni parenti tra questi vicini e deve settare il suo rank in modo che sia più grande del rank dei parenti.
     \item Il rank fornisce un ordine parziale tra i nodi del grafo, quindi dati due nodi A e B sullo stesso cammino verso il sink, il nodo A è più vicino del nodo B se rank(A)$<$rank(B) (però se i due nodi non sono sullo stesso cammino verso il sink, non possono essere tratte conclusioni a riguardo, per questo si parla di ordinamento parziale).
     \item Come viene calcolato è definito dalla Funzione Obiettivo.
-    \item I rank possono essere usati per evitare loops.
+    \item I rank possono essere usati per evitare cicli.
     \item Non sono intesi come una misura del costo di un cammino verso il root: un nodo potrebbe avere più di un cammino verso il root, quindi una singola misurazione come il rank non è adatta a rappresentare il costo di un cammino. In più, è meglio mantenere queste due metriche separate; infatti, il costo del percorso è una metrica che potrebbe variare frequentemente, mentre il rank è una misura che vorremmo rimanesse stabile.
 \end{itemize}
 
 \subsection{Formazione del DODAG}
-Il Root DODAG comincia facendo advertising della sua presenza mandando dei \textit{DODAG} sull'indirizzo link-local multicast; questi messaggi contengono differenti parti di informazione, tra i quali: 
+Il Root DODAG comincia facendo advertising della sua presenza mandando dei messaggi DIO (\textit{DODAG Information Object}) sull'indirizzo link-local multicast; questi messaggi contengono differenti parti di informazione, tra i quali: 
 \begin{itemize}
     \item Identificatore dell'istanza DODAG
     \item L'identificatore DODAG nell'instanza RPL
@@ -682,7 +681,7 @@ Ciascun nodo ha un contatore \(\displaystyle c\) ed un timer \(\displaystyle\tau
     \item Se i metadati sono consistenti (rispettano le regole dei gradi/rank):
     \begin{enumerate}
         \item \(\displaystyle c++\)
-        \item se c $<$ K: il nodo invia i metadati.
+        \item al tempo \(\tau\), se \(c < K\): il nodo invia in broadcast i metadati.
         \item quando l'intervallo I scade:
         \begin{enumerate}
             \item \(\displaystyle I = 2I\) fino ad un massimo di \(\displaystyle I\textsubscript{max}\)
@@ -690,7 +689,7 @@ Ciascun nodo ha un contatore \(\displaystyle c\) ed un timer \(\displaystyle\tau
             \item \(\displaystyle \tau\) = \(\displaystyle \tau' \in [\frac{I}{2}, I]\)
         \end{enumerate}
     \end{enumerate}
-    \item altrimenti resetto tutto.
+    \item altrimenti (metadati inconsistenti), resetto tutto.
 \end{enumerate}
 La costante K è detta soglia di ridondanza e indica il numero massimo di messaggi DIO che possono essere ascoltati in un determinato intervallo (misurato da Trickle). Oltre questa soglia si ha la soppressione dei messaggi. \\
 \paragraph{Inconsistenza di Routing} Trickle utilizza il concetto di messaggi \textit{consistenti} e \textit{inconsistenti}. Nel nostro caso, i messaggi inconsistenti si riferiscono a cambiamenti nella topologia del network. Il sink potrebbe rilevare inconsistenza di route, in quel caso può mandare nuovi messaggi DIO per costruire un nuovo DODAG. \\ I messaggi DIO includono un altro pezzo di informazione: la versione DODAG. Quindi, i nuovi messaggi DIO includono un nuovo numero della versione DODAG; inizia così la procedura per unirsi ad un nuovo DODAG comportandosi come se avesse ricevuto un nuovo messaggio inconsistente, resettando l'intervallo Trickle, per consentire una costruzione veloce di un nuovo DODAG. \\ Inoltre, un nodo stesso potrebbe autonomamente rilevare inconsistenze di route: ad esempio, potrebbe osservare che il rank di un parente è cambiato e se il nuovo rank è manggiore del proprio rank, si è rilevata un'inconsistenza. In questo caso, il nodo si adatta alla nuova topologia e l'intervallo di Trickle è resettato. Informazioni riguardanti il rank del nodo possono essere incluse nel messaggio generato dal nodo, inserendolo nell'header IPv6 nell'opzione \textit{hop-by-hop}.
