@@ -9,7 +9,7 @@
 
 \title{Appunti Advanced Networking \\ and Wireless Systems}
 \author{}
-\date{aa 2019/20}
+\date{lezioni aa 2019/20}
 
 \begin{document}
 
@@ -180,7 +180,7 @@ Gli indirizzi IPv6 hanno uno “scope” (codificato come parte dell’indirizzo
 Non è più presente ARP, il servizio viene fornito direttamente da IPv6. Scope è un sottoinsieme di tutta la network codificata con un indirizzo. In IPv4 c’è solo uno scopo, che è il global-scope, mentre in IPv6 c’è sia il global-scope che local-scope.
 
 \subsection{Link IPv6}
-Identificato da un set di interfacce che possono comunicare direttamente tra di loro (hop singolo). Un link IPv6 è un’astrazione, insieme di interfacce che possono comunicare direttamente senza l’intermezzo di un router. Il protocollo IP introduce un modello per modellare la rete. Un link che pensiamo come ad esempio un filo, è in realtà un'astrazione di ciò che il sottostante link-layer protocol permette di fare. Se, per esempio, si dice che un link è broadcast, significa che la sottostante link-layer technology mette a disposizione di IP la comunicazione broadcast (non si parla quindi del mezzo). \\ Ethernet supporta broadcast, la tecnologia però, non lo è. È connessa a degli switch in unicast (point-to-point).
+Identificato da un set di interfacce che possono comunicare direttamente tra di loro senza bisogno di passare da un router (hop singolo). Un link IPv6 è un’astrazione, insieme di interfacce che possono comunicare direttamente senza l’intermezzo di un router. Il protocollo IP introduce un modello per modellare la rete. Un link che pensiamo come ad esempio un filo, è in realtà un'astrazione di ciò che il sottostante link-layer protocol permette di fare. Se, per esempio, si dice che un link è broadcast, significa che la sottostante link-layer technology mette a disposizione di IP la comunicazione broadcast (non si parla quindi del mezzo). \\ Ethernet supporta broadcast, la tecnologia però, non lo è. È connessa a degli switch in unicast (point-to-point).
 Tipiche assunzioni riguardo ad un link:
 \begin{itemize}
     \item Stabile (nel tempo)
@@ -198,8 +198,9 @@ Se non vale la proprietà transitiva, non si può usare la on-link determination
 \begin{itemize}
     \item \textbf{Global Address scope}: unico nell'intera internet
     \item \textbf{Link-local}: Assomiglia vagamente ai private address di IPv4, ma è più specifico. Grazie al link-local address ed al fatto che gli host possono autoconfigurare le proprie interfacce, la comunicazione su un link può avvenire senza bisogno di altro, senza bisogno di un gestore.\\
-    L'indirizzo quindi è unico sul link al quale è attaccata l'interfaccia corrispondente. 
-    \item \textbf{Unique local}: Indirizzo globally unique, ma valido solo in un sottoinsieme dei link. Non dovrebbe essere "routato" nel global Internet.\\ In IPv4 c'erano gli indirizzi privati, come 192.168.0.1: questa soluzione non garantisce unicità globale: collegando 2 reti si hanno conflitti di indirizzi.
+    L'indirizzo quindi è unico sul link al quale è attaccata l'interfaccia corrispondente, e non deve uscire da essa. 
+    \item \textbf{Unique local}: Indirizzo globalmente unico, ma valido solo in un sottoinsieme dei link. Non dovrebbe essere "routato" nel global Internet.\\ 
+    In questo modo se 2+ sottoreti si vogliono unire, non ci saranno problemi di sovrapposizione degli indirizzi.
 \end{itemize}{}
 
 \subsection{Notazione di indirizzi}
@@ -427,8 +428,16 @@ Finalmente, C riceve il pacchetto, rimuove l'header e controlla che il pacchetto
     \includegraphics[scale=0.4]{figures/L2 forwarding.png}
     \caption{Mesh Under protocol stack}
 \end{figure}
-Ovviamente, la scelta del prossimo hop per una certa destinazione, è determinata sulla base di un algoritmo di routing specificato a priori. Si crea un problema che riguarda la mancanza di interoperabilità tra L2 ed L3, quindi la riparazione delle rotte sono lente.
-
+\noindent Ovviamente, la scelta del prossimo hop per una certa destinazione, è determinata sulla base di un algoritmo di routing specificato a priori. Si crea un problema che riguarda la mancanza di interoperabilità tra L2 ed L3, quindi la riparazione delle rotte sono lente.
+\begin{itemize}
+    \item \textbf{Discrepanza topologica tra L2-L3:} a livello 2 abbiamo lo \textit{spanning tree protocol} che gestisce le rotte. Essendo in un contesto wireless (e non cablato) non abbiamo la possibilità di fare controlli elettronici diretti per verificare lo stato dei nodi (che nelle LLNs possono spostarsi, andare in standby ecc). Segue che l'algoritmo non rileva immediatamente i cambiamenti di topologia nella rete e quindi ci sarà una discrepanza tra la topologia vista a L2 e quella a L3.
+    \begin{itemize}
+        \item le riparazioni delle rotte a L2 sono lente
+    \end{itemize}
+    \item Non c'è un protocollo efficace che possa sostituire lo spanning tree.
+    \item \underline{Si potrebbe usare una tabella di routing a L2?} In teoria si, in pratica non c'è un protocollo efficace che possa generare questa tabella.
+\end{itemize}
+Alcuni di questi concetti verranno ripresi nei paragrafi successivi.
 \subsubsection{L2 forwarding vs IP model}
 \underline{Definizione di link}: un'area topologica limitata da routers (in cui la comunicazione è regolata da un protocollo L2) che decrementa l'IPv6 Hop Limit quando si fa il forwarding dei pacchetti.\\
 \underline{Definizione di subnet}: un'area topologica che utilizza lo stesso prefisso nell'indirizzo, dove quel prefisso non viene ulteriormente suddiviso eccetto per quanto riguarda indirizzi individuali. \\
@@ -451,7 +460,7 @@ In questo caso, se un nodo trasmette un pacchetto, questa trasmissione sarà ric
 \end{figure}
 
 \subsubsection{L3 forwarding (Route-Over)}
-In questo caso, le decisioni di routing vengono prese in base alle informazioni di IPv6, non ci si aspetta supporto dal layer 2. I problemi vengono risolti al layer 3. In 6LoWPAN il routing viene fatto a livello 3, usando delle estensioni per implementare quelle funzioni che IPv6 considera svolte solamente a livello sottostante. Se un pacchetto è frammentato, a ogni router il pacchetto va deframmentato ed analizzato e poi re-frammentato per essere rimandato. Quindi si crea un alto overhead per questo tipo di approccio.
+In questo caso, le decisioni di routing vengono prese in base alle informazioni di IPv6 (quindi a livello 3), non ci si aspetta supporto dal livello 2. In 6LoWPAN il routing viene fatto a livello 3, usando delle estensioni per implementare quelle funzioni che IPv6 considera svolte solamente a livello sottostante. Siccome vogliamo implementare il routing \textit{multi-hop} a livello 3, abbiamo bisogno di tutte le informazioni (per esempio gli extension header). Se il pacchetto è frammentato allora devo aspettare tutti i frammenti per ricomporlo e solo allora avrò tutte le informazioni necessarie per inoltrarlo. Prima di fare ciò bisognerà ovviamente ri-frammentare il pacchetto. Quindi si crea un alto overhead per questo tipo di approccio.
 \begin{figure}[H]
 \centering
 \includegraphics[scale=0.4]{figures/L3 forwarding.png}
@@ -498,7 +507,8 @@ Guardando i primi 2 bit si capisce come guardare il resto del payload, in questo
 \end{figure}
 
 \subsubsection{Mesh addressing layer}
-6LoWPAN supporta il forwarding mesh a livello 2 quando il link-layer utilizza il multi-hop. Ma non è definito nessun protocollo di routing. \textit{Mesh-Under}.
+6LoWPAN supporta il forwarding mesh a livello 2 quando il link-layer utilizza il multi-hop. Ma non è definito nessun protocollo di routing. \textit{Mesh-Under}.\\
+Se usato, il Mesh Header deve essere il primo in cima allo stack visto che contiene l'indirizzo necessario per fare il forwarding del pacchetto.
 \begin{figure}[H]
 \centering
 \includegraphics[scale=0.5]{figures/mesh header.png}
@@ -554,6 +564,7 @@ Si utilizzano contesti condivisi tra source e destination per ottenere una compr
     \item \textit{Source Address Compression (SAC)} specifica quando avviene una compressione statefull o stateless.
     \item \textit{Source Address Mode (SAM)} specifica quanti bit sono stati tolti (elided) e quanti altri sono passati "in-line".
 \end{itemize}
+C'è un ulteriore campo SCI (\textit{Source Code Identifier}) che punta allo slot della Tabella di Contesto contenente il prefisso cercato.\\
 In caso di compressione stateful, il prefisso può essere trovato in una tabella di contesto (di 16 entries) condivisa tra il sender e il receiver. Il Border Router diffonde questa informazione nella rete. Occorre semplicemente specificare l'ID del contesto, non l'indirizzo. Si parla, quindi, di stateful perché in diverse 6LoWPAN possiamo avere diverse context table.
 
 \subsection{6LoWPAN Neighbour Discovery (ND)}
@@ -675,9 +686,9 @@ Trickle è un algoritmo di tipo gossip che consente di propagare informazioni co
     \item \textbf{Broadcast Suppression:} vengono selezionati solo alcuni nodi che ritrasmettono, mentre gli altri non possono.
     \item \textbf{Adaptive Periodicity:} modifica la frequenza che indica ogni quanto vengono mandati i messaggi DIO.
 \end{itemize}
-Ciascun nodo ha un contatore \(\displaystyle c\) ed un timer \(\displaystyle\tau \in [\frac{I}{2}, I]\), quando il timer scade un nodo fa il broadcast del messaggio: ogni nodo conta il numero di messaggi \textit{consistenti} che vengono ricevuti nell'intervallo corrente e quando il timer scade, il nodo attiva il broadcast solo se il numero è minore di un \textit{threshold di ridondanza}. \\ Nello specifico, il funzionamento dell'algoritmo:
+Ciascun nodo ha un contatore \(\displaystyle c\) ed un timer \(\displaystyle\tau \in [\frac{I}{2}, I]\), quando il timer scade un nodo fa il broadcast del messaggio: ogni nodo conta il numero di messaggi \textit{consistenti} che vengono ricevuti nell'intervallo corrente e quando il timer scade, il nodo attiva il broadcast solo se il numero è minore di un \textit{threshold di ridondanza}. \\ Nello specifico, vediamo il \textbf{funzionamento di Trickle:}
 \begin{enumerate}
-    \item Inizialmente \(\displaystyle \tau = I\textsubscript{min}\) e aspetto i metadati.
+    \item Inizialmente \(\displaystyle I = I\textsubscript{min}\), \(c=0\), \(\displaystyle\tau \in [\frac{I}{2}, I]\) e aspetto i metadati.
     \item Se i metadati sono consistenti (rispettano le regole dei gradi/rank):
     \begin{enumerate}
         \item \(\displaystyle c++\)
@@ -691,7 +702,7 @@ Ciascun nodo ha un contatore \(\displaystyle c\) ed un timer \(\displaystyle\tau
     \end{enumerate}
     \item altrimenti (metadati inconsistenti), resetto tutto.
 \end{enumerate}
-La costante K è detta soglia di ridondanza e indica il numero massimo di messaggi DIO che possono essere ascoltati in un determinato intervallo (misurato da Trickle). Oltre questa soglia si ha la soppressione dei messaggi. \\
+La costante \(K>0\) è detta soglia di ridondanza e indica il numero massimo di messaggi DIO che possono essere ascoltati in un determinato intervallo (misurato da Trickle). Oltre questa soglia si ha la soppressione dei messaggi. \\
 \paragraph{Inconsistenza di Routing} Trickle utilizza il concetto di messaggi \textit{consistenti} e \textit{inconsistenti}. Nel nostro caso, i messaggi inconsistenti si riferiscono a cambiamenti nella topologia del network. Il sink potrebbe rilevare inconsistenza di route, in quel caso può mandare nuovi messaggi DIO per costruire un nuovo DODAG. \\ I messaggi DIO includono un altro pezzo di informazione: la versione DODAG. Quindi, i nuovi messaggi DIO includono un nuovo numero della versione DODAG; inizia così la procedura per unirsi ad un nuovo DODAG comportandosi come se avesse ricevuto un nuovo messaggio inconsistente, resettando l'intervallo Trickle, per consentire una costruzione veloce di un nuovo DODAG. \\ Inoltre, un nodo stesso potrebbe autonomamente rilevare inconsistenze di route: ad esempio, potrebbe osservare che il rank di un parente è cambiato e se il nuovo rank è manggiore del proprio rank, si è rilevata un'inconsistenza. In questo caso, il nodo si adatta alla nuova topologia e l'intervallo di Trickle è resettato. Informazioni riguardanti il rank del nodo possono essere incluse nel messaggio generato dal nodo, inserendolo nell'header IPv6 nell'opzione \textit{hop-by-hop}.
 
 \paragraph{Rilevazione dei loop} Può essere eseguito dai nodi mentre osservano inconsistenze nel rank dei parenti. Considerando la seguente situazione d'esempio:
@@ -701,7 +712,10 @@ La costante K è detta soglia di ridondanza e indica il numero massimo di messag
 \includegraphics[scale=0.4]{figures/loop example 2.png}
 \caption{Esempio topologia in loop}
 \end{figure}
-In questo esempio, il link tra BR ed R1 si rompe. Quindi, R1 si aggancia ad R3, cambiando il suo rank a 9. Tuttavia, R1 è ancora parente di R2, che è, a sua volta è parente di R3: si è formato un loop. \\ In questa condizione, il loop può essere rilevato quando R2, per esempio, manda un messaggio al root, utilizzando R1 come prossimo hop. R1, infatti, riceverà il messaggio in cui il rank sarà più piccolo del suo; questa però risulta essere un'inconsistenza perché messaggi che attraversano un cammino verso il root dovrebbero sempre trovare rank decrescenti. \\ Si crea anche un problema di "conteggio all'infinito": dall'esempio precedente, R1 inizierà a mandare i messaggi DIO con il suo rank aggiornato; questi messaggi saranno ricevuti da R2. Quest'ultimo non sa che è presente un loop e andrà ad incrementare il suo rank in modo da mantenere la regola che il rank del parent deve essere più piccola di quella dei figli. A sua volta, R2 inizierà a mandare messaggi DIO, con il suo rank aggiornato, che verranno ricevuti da R3. Questo, farà la solita cosa, incrementando il rank e mandando ancora messaggi DIO. Questi messaggi saranno ricevuti da R1 che incrementerà ancora il rank. \\ Questa procedura si ripeterà all'infinito e i nodi continueranno a incrementare il rank in maniera indefinita. \\ I loop possono essere rotti e il problema del conteggio all'infinito può essere evitato andando a definire un valore \textit{Max Depth}: i rank non potranno essere più grandi di questo valore e quando un nodo vede che il suo parent ha raggiunto il massimo valore del rank, che potrebbe accadere dopo che si è verificato il fenomeno sopracitato, si stacca dal parent, rompendo il possibile loop. \\ Il "conto all'infinito" può essere evitato imponendo che il nodo setti il suo rank al massimo valore appena questo osserva che un cammino verso il root è fallito (questo è simile al "root poisoning", ovvero quando un router setta il costo verso una destinazione a infinito). Nel precedente esempio, R1 dovrebbe settare il suo rank al valore massimo quando il link verso BR fallisce.
+\noindent In questo esempio, il link tra BR ed R1 si rompe. Quindi, R1 si aggancia ad R3, cambiando il suo rank a 9. Tuttavia, R1 è ancora parente di R2, che è, a sua volta è parente di R3: si è formato un loop. \\ In questa condizione, il loop può essere rilevato quando R2, per esempio, manda un messaggio al root, utilizzando R1 come prossimo hop. R1, infatti, riceverà il messaggio in cui il rank sarà più piccolo del suo; questa però risulta essere un'inconsistenza perché messaggi che attraversano un cammino verso il root dovrebbero sempre trovare rank decrescenti. \\ Si crea anche un problema di "conteggio all'infinito": dall'esempio precedente, R1 inizierà a mandare i messaggi DIO con il suo rank aggiornato; questi messaggi saranno ricevuti da R2. Quest'ultimo non sa che è presente un loop e andrà ad incrementare il suo rank in modo da mantenere la regola che il rank del parent deve essere più piccola di quella dei figli. A sua volta, R2 inizierà a mandare messaggi DIO, con il suo rank aggiornato, che verranno ricevuti da R3. Questo, farà la solita cosa, incrementando il rank e mandando ancora messaggi DIO. Questi messaggi saranno ricevuti da R1 che incrementerà ancora il rank. \\ Questa procedura si ripeterà all'infinito e i nodi continueranno a incrementare il rank in maniera indefinita. \\ I loop possono essere rotti e il problema del conteggio all'infinito può essere evitato andando a definire un valore \textit{Max Depth}: i rank non potranno essere più grandi di questo valore e quando un nodo vede che il suo parent ha raggiunto il massimo valore del rank, che potrebbe accadere dopo che si è verificato il fenomeno sopracitato, si stacca dal parent, rompendo il possibile loop. \\ Il "conto all'infinito" può essere evitato imponendo che il nodo setti il suo rank al massimo valore appena questo osserva che un cammino verso il root è fallito (questo è simile al "root poisoning", ovvero quando un router setta il costo verso una destinazione a infinito). Nel precedente esempio, R1 dovrebbe settare il suo rank al valore massimo quando il link verso BR fallisce.\\
+\paragraph{Global Repair} Il BR nota che c'è un'inconsistenza nella rete e invia messaggi DIO con numero di versione DODAG diverso rispetto a quello attuale. In questo modo i router capiscono che la rete deve essere resettata.
+
+\paragraph{Local Repair} La riparazione delle inconsistenze viene fatta localmente dai singoli router (come abbiamo visto per la loop detection).
 
 
 \subsection{Comunicazioni Point-to-Point e Point-to-Multipoint}
@@ -723,14 +737,14 @@ Esistono due modalità di implementazione:
 \newpage
 \section{CoAP}
 \subsection{Concetti generali}
-Constrained Application Protocol, è un protocollo web generico orientato a requisiti specifici (esempio quelli delle LLNs). Il suo scopo principale è quello di realizzare un protocollo applicazione (L5) per servizi web (in comune con HTTP) ma ottimizzato per le applicazioni \textit{Machine-to-Machine (M2M)}.\\
-Il livello CoAP è intermedio fra UDP e il livello 5 (applicazione) composto da due sottolivelli: uno gestisce le richieste/risposte, l'altro fornisce il supporto allo scambio di messaggi asincroni. I messaggi asincroni servono per poter inviare un messaggio al client anche quando questo non ha effettuato alcuna richiesta (non è possibile in TCP).\\
+Constrained Application Protocol, è un protocollo web generico orientato a requisiti specifici (esempio quelli delle LLNs). Il suo scopo principale è quello di realizzare un protocollo applicazione (L5) per servizi web (in comune con HTTP) ma ottimizzato per le applicazioni \textit{Machine-to-Machine (M2M)}. Non si usa HTTP perchè è troppo pesante per i nodi IoT.\\
+Il livello CoAP è intermedio fra UDP e il livello 5 (applicazione) composto da due sottolivelli: uno gestisce le richieste/risposte, l'altro fornisce il supporto allo scambio di messaggi asincroni. I messaggi asincroni servono per poter inviare un messaggio al client anche quando questo non ha effettuato alcuna richiesta e questo non è possibile in TCP in quanto serve una connessione tra i due peer.\\
 \begin{figure}[H]
 \centering
 \includegraphics[scale=0.4]{figures/coaplayer.jpg}
 \caption{Posizione del livello CoAP}
 \end{figure}
-CoAP utilizza un modello di interazione Request/Response (simile ad HTTP) asincrona, con alcune opzioni per l'affidabilità. \\ Divide il layer applicazione in 2 sotto-layer:
+\noindent CoAP utilizza un modello di interazione Request/Response (simile ad HTTP) asincrona, con alcune opzioni per l'affidabilità. \\ Divide il layer applicazione in 2 sotto-layer:
 \begin{itemize}
     \item Il top layer è il \textit{Request/Response Layer}: i messaggi sono codificati come richieste o risposte (similarmente a HTTP) e specificano l'identificatore della risorsa target e ulteriori informazioni.
     \item Sotto questo layer, è presente il \textit{Asynchronous Message Layer}, che fornisce 4 tipi di messaggi in cui le richieste e risposte possono essere avvolte:
@@ -798,17 +812,11 @@ Oppure, potrebbe essere inviata in un differente messaggio CON:
 \includegraphics[scale=0.6]{figures/coap risposta con.png}
 \caption{CoAP - Risposta a richiesta in differente CON}
 \end{figure}
-Se una richiesta è trasportata in un messaggio NON:
+Se una richiesta è trasportata in un messaggio NON, anche la risposta sarà trasportata in un messaggio NON:
 \begin{figure}[H]
 \centering
 \includegraphics[scale=0.6]{figures/coap richiesta non.png}
-\caption{CoAP - Richiesta NON}
-\end{figure}
-La risposta è trasportata in un messaggio NON:
-\begin{figure}[H]
-\centering
-\includegraphics[scale=0.6]{figures/coap risposta non.png}
-\caption{CoAP - Risposta NON}
+\caption{CoAP - Richiesta e Risposta NON}
 \end{figure}
 C'è un terzo tipo di messaggio: \textit{Vuoto}. I messaggi vuoti non sono nè una Richiesta nè una Risposta, sono identificati da un codice speciale. Un messaggio vuoto in un CON viene usato per "richiedere" un RST: questa feature è chiamata \textit{CoAP ping}. 
 
@@ -917,13 +925,13 @@ Se invece come definizione di fairness scegliamo di allocare la massima capacit�
     \includegraphics[scale=0.4]{figures/maxmin.jpg}
     \caption{Max-Min fairness}
 \end{figure}
-Supponiamo, per esempio, di avere tre percorsi attraverso tre router come mostrato in figura. Avremo un set 0 composto da 1 flusso che attraversa tutti i router, un set 1 composto da 3 flussi che attraversano R1 ed R2 ed infine un set 2 composto da 9 flussi che attraversano R2 ed R3. Quindi tra R1-R2 abbiamo 3+1=4 flussi mentre tra R2-R3 abbiamo 1+9 = 10 flussi.\\
+\noindent Supponiamo, per esempio, di avere tre percorsi attraverso tre router come mostrato in figura. Avremo un set 0 composto da 1 flusso che attraversa tutti i router, un set 1 composto da 3 flussi che attraversano R1 ed R2 ed infine un set 2 composto da 9 flussi che attraversano R2 ed R3. Quindi tra R1-R2 abbiamo 3+1=4 flussi mentre tra R2-R3 abbiamo 1+9 = 10 flussi.\\
 Segue che \(\displaystyle \phi\textsubscript{1} = \frac{c}{4}, \phi\textsubscript{2} = \frac{c}{10}\) mentre \(\displaystyle \phi\textsubscript{0} = min(\phi\textsubscript{1}, \phi\textsubscript{2})\). Questo petche il set 0 attraversa tutti i router e quindi la sua porzione di banda allocata sarà la più piccola fra le disponibili. In questo caso si dice che \(\displaystyle \phi\textsubscript{2} \) è un \textit{bottleneck} per \(\displaystyle \phi\textsubscript{0} \).\\
 Non sempre una divisione in parti uguali è \textit{fair}. Nell'esempio precedente, il set 0 sfrutta una capacità di 0.1c sul link R1-R2 a fronte di una capacità allocata di 0.25c. In questo modo, il set 1 si trova con una capacità totale di 0.75c (anziché 0.9c). Per ottimizzare questa allocazione si può usare un algoritmo noto come \textit{Progressive Filling}.\\
 L'algoritmo Progressive Filling prevede che inizialmente tutti i set abbiano \(\phi\textsubscript{i}=0\). Dopodiché, vengono tutti incrementati della stessa quantità finché non si raggiunge la saturazione di un link. A questo punto, tutte le bande allocate ai flussi che attraversano il link saturo vengono fissate. Si procede dunque all'incremento dei rimanenti set finché tutti i link non sono saturi.\\
 Applicando il Progressive Filling all'esempio precedente si ottiene \( \phi\textsubscript{0}, \phi\textsubscript{2} = \frac{c}{10} \) e \( \phi\textsubscript{1} = \frac{1}{3}(c - \frac{c}{10}) = 0.3c\)\\ \\
 Si può avere inoltre la \textbf{Proportional Fairness} quando la capacità del link viene allocata ad un flusso in base alla richiesta di capacità dello stesso.\\ \\
-DEFINIZIONE di Flusso \textit{backlogged}: Data A(t) funzione di input ad un server e W(t) funzione di output del server, la funzione Q(t) = A(t) - W(t) è definita backlog e rappresenta il lavoro incompleto (lunghezza della coda nel buffer). D'ora in avanti i flussi \textit{backlogged} saranno definiti arretrati.\\ \\
+DEFINIZIONE di Flusso \textit{backlogged}: Data A(t) funzione di input ad un server e W(t) funzione di output del server, la funzione Q(t) = A(t) - W(t) è definita backlog e rappresenta il lavoro incompleto (lunghezza della coda nel buffer). D'ora in avanti i flussi \textit{backlogged} saranno occasionalmente definiti arretrati.\\ \\
 Un altro indice di fairness è l'Indice di Golestani, noto più semplicemente come \textit{Service Fairness Index}, definisce la massima differenza tra il servizio normalizzato ricevuto da due flussi arretrati, su un intervallo in cui entrambi sono continuamente arretrati.\\
 \[
     RF\textsubscript{(i,j)}(t\textsubscript{1}, t\textsubscript{2}) = | \frac{W\textsubscript{i}\textsuperscript{S}(t\textsubscript{1}, t\textsubscript{2})}{t\textsubscript{i}} - \frac{W\textsubscript{j}\textsuperscript{S}(t\textsubscript{1}, t\textsubscript{2})}{t\textsubscript{j}} |
@@ -951,21 +959,23 @@ Gli algoritmi di scheduling possono essere:
 Per i nostri scopi considereremo solo gli algoritmi conservativi poiché nell'Internet la cosa più importante è massimizzare l'utilizzo dei link.
 
 \subsubsection{GPS - Generalized Processor Sharing}
-E' un algoritmo \textbf{conservativo} ispirato alla dinamica dei fluidi in cui i pacchetti sono considerati infinitamente divisibili e il server è in grado di processare più flussi simultaneamente. Questo algoritmo è uno scheduler puramente ideale perciò, in seguito, andremo a definire altri algoritmi che cercheranno di avvicinarsi il più possibile a GPS. \\
+E' un algoritmo \textbf{conservativo} ispirato alla dinamica dei fluidi in cui i pacchetti sono considerati infinitamente divisibili e il server è in grado di processare più flussi simultaneamente. Questo algoritmo è uno scheduler puramente ideale che viene usato solo come modello di riferimento per quelli reali. Perciò, in seguito, andremo a definire altri algoritmi che cercheranno di avvicinarsi il più possibile a GPS. \\
 In GPS, il link ha una certa capacità \( r\) che viene divisa fra i vari flussi, indichiamo la porzione di ciascun flusso con \( \phi\textsubscript{i} \).\\
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.5]{figures/gps.jpg}
     \caption{GPS - funzionamento}
 \end{figure}
-In figura possiamo vedere il funzionamento di GPS. In particolare, ogni quadretto sulla linea temporale rappresenta un pacchetto. Da t=0 a t=7 abbiamo solo due flussi in arrivo al server, ciascuno occupando 1 unità di tempo per pacchetto. Da t=8 in poi, i flussi diventano tre (quindi 3 unità di tempo).\\
+\noindent In figura possiamo vedere il funzionamento di GPS. In particolare, ogni quadretto sulla linea temporale rappresenta un pacchetto. Da t=0 a t=7 abbiamo solo due flussi in arrivo al server, ciascuno occupando 1 unità di tempo per pacchetto. Da t=8 in poi, i flussi diventano tre (quindi 3 unità di tempo).\\
 GPS è un algoritmo conservativo per cui la disuguaglianza:\\
-\begin{center}
-\( \displaystyle \frac{W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2})}{\phi\textsubscript{i}} \geq \frac{W\textsubscript{j}(t\textsubscript{1}, t\textsubscript{2})}{\phi\textsubscript{j}}\), j=1,2,...,N
-\end{center}
-è verificata per qualsiasi flusso i che è continuamente arretrato (backlogged) nell'intervallo \( [t\textsubscript{1}, t\textsubscript{2}] \). In altre parole, se la coda del buffer è sempre non-vuota, allora il servizio relativo (relativo alla mia frazione di banda) che ricevo non può essere minore del servizio normalizzato ricevuto da qualsiasi altro flusso, nello stesso intervallo.
-Se entrambi i flussi i e j sono entrambi arretrati (backlogged) in \( [t\textsubscript{1}, t\textsubscript{2}] \) allora si ha un'uguaglianza. Rispetto all'Indice di Golestani (o Relative Fairness Index), GPS è perfettamente fail in quanto i due termini della sottrazione sono uguali e quindi RFI = 0.\\
-Ad un flusso i viene garantito un certo \textit{rate minimo} g\textsubscript{i} calcolabile come:
+\[ \displaystyle \frac{W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2})}{\phi\textsubscript{i}} \geq \frac{W\textsubscript{j}(t\textsubscript{1}, t\textsubscript{2})}{\phi\textsubscript{j}}, j=1,2,...,N
+\]
+è verificata per qualsiasi flusso i che è continuamente arretrato (backlogged) nell'intervallo \( [t\textsubscript{1}, t\textsubscript{2}] \). In altre parole, se la coda del buffer è sempre non-vuota, allora il servizio relativo (relativo alla mia frazione di banda) che ricevo non può essere minore del servizio normalizzato ricevuto da qualsiasi altro flusso, nello stesso intervallo.\\
+Se entrambi i flussi i e j sono entrambi arretrati (backlogged) in \( [t\textsubscript{1}, t\textsubscript{2}] \) allora si ha:
+\[ \displaystyle \frac{W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2})}{\phi\textsubscript{i}} = \frac{W\textsubscript{j}(t\textsubscript{1}, t\textsubscript{2})}{\phi\textsubscript{j}}, j=1,2,...,N
+\]
+A questo punto se calcoliamo la \textit{fairness} tramite l'indice di Golestani (o Relative Fairness Index), otteniamo che \(RFI = 0\) e quindi GPS è perfettamente fair.\\
+Ad un flusso i viene garantito un certo \textbf{Rate Minimo Garantito} g\textsubscript{i} calcolabile come:
 \[ \frac{W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2})}{W\textsubscript{j}(t\textsubscript{1}, t\textsubscript{2})} \geq \frac{\phi\textsubscript{i}}{\phi\textsubscript{j}}\]
 
 \[ W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2})\phi\textsubscript{j} \geq W\textsubscript{j}(t\textsubscript{1}, t\textsubscript{2})\phi\textsubscript{i}\]
@@ -973,23 +983,35 @@ Ad un flusso i viene garantito un certo \textit{rate minimo} g\textsubscript{i} 
 \[ \sum_{j=1}^{N} W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2})\phi\textsubscript{j} \geq \sum_{j=1}^{N} W\textsubscript{j}(t\textsubscript{1}, t\textsubscript{2})\phi\textsubscript{i} \]
 
 \[ W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2})\sum_{j=1}^{N} \phi\textsubscript{j} \geq 
-\phi\textsubscript{i}\sum_{j=1}^{N} W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2}) \]
-A questo punto ci interessa notare che il termine \( \sum_{j=1}^{N} W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2}) \) indica la somma dei servizi forniti a tutti i flussi nell'intervallo \( [t\textsubscript{1}, t\textsubscript{2}] \) ma noi sappiamo che c'è almeno un flusso (i) che è sempre arretrato (backlogged). Quindi durante questo intervallo, sapendo che GPS è conservativo, possiamo dire che il server utilizza tutto il rate disponibile.\\
-Detto questo, possiamo scrivere che (ricordando che \( r \) è il rate):
+\phi\textsubscript{i}\sum_{j=1}^{N} W\textsubscript{j}(t\textsubscript{1}, t\textsubscript{2}) \]
+A questo punto ci interessa notare che il termine \( \sum_{j=1}^{N} W\textsubscript{j}(t\textsubscript{1}, t\textsubscript{2}) \) indica la somma dei servizi forniti a tutti i flussi nell'intervallo \( [t\textsubscript{1}, t\textsubscript{2}] \) ma noi sappiamo che c'è almeno un flusso (i) che è sempre arretrato (\textit{backlogged}). Quindi durante questo intervallo, sapendo che GPS è conservativo, possiamo dire che il server utilizza tutto il rate \(r\) disponibile.\\
+Detto questo, possiamo scrivere che:
 
-\[ \sum_{j=1}^{N} W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2}) = r(t\textsubscript{2}, t\textsubscript{1}) \]
+\[ \sum_{j=1}^{N} W\textsubscript{j}(t\textsubscript{1}, t\textsubscript{2}) = r(t\textsubscript{2} - t\textsubscript{1}) \]
 Sostituendo nella disuguaglianza iniziale:
 \[ W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2})\sum_{j=1}^{N} \phi\textsubscript{j} \geq
 \phi\textsubscript{i} r(t\textsubscript{2} - t\textsubscript{1}) \]
 e quindi:
 \[ W\textsubscript{i}(t\textsubscript{1}, t\textsubscript{2}) \geq \frac{\phi\textsubscript{i}}{\sum_{j=1}^{N} \phi\textsubscript{j}}r(t\textsubscript{2} - t\textsubscript{1})\]
-dove \( g\textsubscript{i} = \frac{\phi\textsubscript{i}}{\sum_{j=1}^{N} \phi\textsubscript{j}}r \)\\
-La banda allocata in eccesso a dei flussi può essere redistribuita tra i flussi arretrati (backlogged) in proporzione al loro peso. In questo caso si parla di rate istantaneo. In figura possiamo osservare come varia il servizio ricevuto dal flusso i: la curva è limitata superiormente dalla capacità del link \( r\) ed inferiormente dal rate minimo garantito \( g\textsubscript{i} \). La pendenza non può mai essere in contrasto con le pendenze di queste due rette.
+dove il termine \( g\textsubscript{i} = \frac{\phi\textsubscript{i}}{\sum_{j=1}^{N} \phi\textsubscript{j}}r \) è il \textbf{rate minimo garantito} che cercavamo. \\
+Pertanto si può dire che il servizio \(W\textsubscript{i}\) è limitato inferiormente da \( g\textsubscript{i}\).\\
+In figura possiamo osservare come varia il servizio ricevuto dal flusso i: la curva è limitata superiormente dalla capacità del link \( r\) ed inferiormente dal rate minimo garantito \( g\textsubscript{i} \). La pendenza non può mai essere in contrasto con le pendenze di queste due rette.
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.5]{figures/gps_rate.jpg}
     \caption{GPS - funzionamento}
 \end{figure}
+\noindent La banda allocata in eccesso a dei flussi può essere redistribuita tra i flussi arretrati (backlogged) in proporzione al loro peso. In questo caso si parla di rate istantaneo:
+\[
+r\textsubscript{i}(t) = \frac{\phi\textsubscript{i}}{\sum_{j \in B(t)} \phi\textsubscript{j}}r \geq g\textsubscript{i} \Longrightarrow r\textsubscript{i}(t) \geq g\textsubscript{i} 
+\]
+dove B(t) è il set di flussi \textit{backlogged}.\\
+GPS fornisce anche determinate garanzie sul ritardo. In particolare:
+\[
+delay\textsubscript{i} \leq \frac{Q\textsubscript{i}}{g\textsubscript{i}}
+\]
+dove \(Q\textsubscript{i}\) è il numero di pacchetti \textit{backlogged}.\\
+La garanzia fornita è che il \textbf{ritardo nel caso pessimo} è limitato se e solo se il traffico in arrivo è limitato.
 In conclusione, GPS non è realizzabile per davvero poiché introduce delle assunzioni che non sono realistiche:  i pacchetti non sono infinitamente divisibili e non possono essere trasmessi simultaneamente. Ma se implementassimo un algoritmo di scheduling che crea gli stessi output con lo stesso ordine (ma con tempistiche diverse)?
 
 \subsubsection{WFQ - Weighted Fair Queueing}
@@ -1005,7 +1027,7 @@ Possiamo avere 2 casi: o siamo in ritardo rispetto a GPS, e quindi possiamo esse
     \includegraphics[scale=1.1]{figures/fairness1.jpg}
     \caption{}
 \end{figure}
-In figura possiamo osservare l'ordine di arrivo dei pacchetti (sx) e l'ordine di servizio in un sistema GPS (dx). Il servizio in uscita offerto dal sistema WFQ sarà:
+\noindent In figura possiamo osservare l'ordine di arrivo dei pacchetti (sx) e l'ordine di servizio in un sistema GPS (dx). Il servizio in uscita offerto dal sistema WFQ sarà:
 %fairnsess2
 \begin{figure}[H]
     \centering
@@ -1013,18 +1035,16 @@ In figura possiamo osservare l'ordine di arrivo dei pacchetti (sx) e l'ordine di
     \caption{Servizio del sistema WFQ}
 \end{figure}
 
-%\paragraph{Busy Period} E' un intervallo di tempo in cui il server è occupato. Per un server di tipo conservativo, l'inizio e la fine del busy period non dipendono dalla disciplina di scheduling.
-
 \newpage
 \subsubsection{(WF)\textsuperscript{2}Q - Variante di WFQ}
-Worst-case Fair WFQ è una variante di WFQ che, quando il server è pronto a trasmettere un nuovo pacchetto ne sceglie uno fra quelli che avrebbero già cominciato ad essere serviti da un sistema GPS equivalente. Tornando all'esempio fatto nel capitolo precedente, vediamo come cambia il servizio del sistema WFQ:
+Worst-case Fair WFQ è una variante di WFQ che, quando il server è pronto a trasmettere un nuovo pacchetto ne sceglie uno fra quelli che, al tempo \textit{t}, avrebbero già cominciato ad essere serviti da un sistema GPS equivalente. Tornando all'esempio fatto nel capitolo precedente, vediamo come cambia il servizio del sistema WFQ:
 %fairnsess3
 \begin{figure}[H]
     \centering
     \includegraphics[scale=2]{figures/fairness3.jpg}
     \caption{Servizio del sistema WF\textsuperscript{2}Q}
 \end{figure}
-Come si può osservare, il primo pacchetto ad uscire è sempre p\textsubscript{1}\textsuperscript{1} in quanto è il primo ad arrivare. Tuttavia, quando p\textsubscript{1}\textsuperscript{1} viene trasmesso il prossimo ad essere preso in lavorazione non sarà p\textsubscript{1}\textsuperscript{2} in quanto non ancora arrivato, bensì p\textsubscript{2}\textsuperscript{1}. In questo modo i pacchetti del flusso 1 si alternano con tutti gli altri.
+\noindent Come si può osservare, il primo pacchetto ad uscire è sempre p\textsubscript{1}\textsuperscript{1} in quanto è il primo ad arrivare. Tuttavia, quando p\textsubscript{1}\textsuperscript{1} viene trasmesso il prossimo ad essere preso in lavorazione non sarà p\textsubscript{1}\textsuperscript{2} in quanto non ancora arrivato, bensì p\textsubscript{2}\textsuperscript{1}. In questo modo i pacchetti del flusso 1 si alternano con tutti gli altri.
 
 \newpage
 \subsubsection{DRR - Deficit Round Robin}
@@ -1038,7 +1058,7 @@ Funzionamento:
 \begin{enumerate}
     \item Quando un flusso è \textit{backlogged}, DC\textsubscript{i} = 0
     \item Ad ogni round, DC\textsubscript{i} = DC\textsubscript{i} + Q\textsubscript{i}
-    \item Il flusso \(i\) può trasmettere fino a DC\textsubscript{i} pacchetti
+    \item Il flusso \(i\) può trasmettere fino a DC\textsubscript{i} unità di traffico.
     \item Se il flusso è ancora \textit{backlogged} dopo il servizio, DC\textsubscript{i} = DC\textsubscript{i}- byte(trasmessi)
     \item Altrimenti, se \(i\) non è più \textit{backlogged}, DC\textsubscript{i} = 0
 \end{enumerate}
@@ -1085,7 +1105,9 @@ Un metodo per implementare il policing è il \textit{token bucket}, ossia un con
     \path [line] (identify) -- node {si} (update);
     \path [line] (update) -- (stop);
 \end{tikzpicture}
-A questo punto bisognerà definire in cosa consistono le azioni di \textit{exceed} e \textit{conform} in base al comportamento che vogliamo ottenere.
+A questo punto bisognerà definire in cosa consistono le azioni di \textit{exceed} e \textit{conform} in base al comportamento che vogliamo ottenere.\\
+Con il policing si va ad eliminare il ritardo a scapito di una maggiore perdita pacchetti. Questo perché droppando i pacchetti all'ingresso della coda impongo un limite alla funzione degli arrivi e quindi la rete non sarà mai congestionata.
+\paragraph{Multiple Rates} Un caso del token bucket è quello in cui abbiamo 2+ bucket concorrenti. Un pacchetto che vuole viaggiare nella rete dovrà ottenere un numero di token sufficienti sia nel primo bucket che nel secondo.
 
 \subsubsection{Shaping}
 In questo caso, se non ci sono abbastanza token nel bucket il pacchetto non viene scartato, bensì viene messo in attesa fino a che non ci saranno token a sufficienza.\\
@@ -1131,7 +1153,7 @@ Tecnica pro-attiva pensata per rilevare preventivamente una possibile congestion
     \includegraphics[scale=0.5]{figures/red.jpg}
     \caption{Random Drop}
 \end{figure}
-Come possiamo vedere in figura, ad ogni soglia \(q\) della coda corrisponderà una certa probabilità di drop. Possiamo rendere l'algoritmo più o meno \textit{aggressivo} andando a modificare la pendenza della retta di random drop. Questo può essere utile nel caso delle classi DSCP perchè ci permette di avere un comportamento di RED diverso per ogni classe, a seconda della loro precedenza di drop.
+\noindent Come possiamo vedere in figura, ad ogni soglia \(q\) della coda corrisponderà una certa probabilità di drop. Possiamo rendere l'algoritmo più o meno \textit{aggressivo} andando a modificare la pendenza della retta di random drop. Questo può essere utile nel caso delle classi DSCP perchè ci permette di avere un comportamento di RED diverso per ogni classe, a seconda della loro precedenza di drop.
 
 \newpage
 \section{Core Network Protocols and Architectures}
@@ -1142,7 +1164,7 @@ Con l'espansione della rete, sono nati problemi di scalabilità di gestione dell
     \includegraphics[scale=0.6]{figures/fish.jpg}
     \caption{Esempio di \textit{fish-network}}
 \end{figure}
-Un esempio lampante per capire il problema è quello della "fish network" mostrato in figura, in cui si hanno 2 flussi distinti che devono raggiungere un certo border router. Assumendo che uno dei percorsi per raggiungere il border router sia più lento e l'altro più veloce, vorremmo decidere di differenziare i 2 flussi nei due percorsi differenti. Questo con IP non è possibile, perché il path in IP viene deciso solo tramite il destination address. Tutti i flussi di dati vengono trattati ugualmente, non è possibile modificare questo comportamento del protocollo IP. Quindi, l'obiettivo è che un percorso non venga scelto solo attraverso la destinazione, ma anche sulla base della sorgente. \\ Per risolvere il problema, si deve fare \textit{reverse-engineering} su OSPF, modificando il costo del link, in modo tale che il risultato dato in output da OSPF sia uguale a quello che abbiamo calcolato esternamente. Tramite questo lavoro si ottimizzano le performance della rete. \\ MPLS (Multi-Protocol Label Switching) si pone come soluzione per risolvere problemi di questo tipo.
+\noindent Un esempio lampante per capire il problema è quello della "fish network" mostrato in figura, in cui si hanno 2 flussi distinti che devono raggiungere un certo border router. Assumendo che uno dei percorsi per raggiungere il border router sia più lento e l'altro più veloce, vorremmo decidere di differenziare i 2 flussi nei due percorsi differenti. Questo con IP non è possibile, perché il path in IP viene deciso solo tramite il destination address. Tutti i flussi di dati vengono trattati ugualmente, non è possibile modificare questo comportamento del protocollo IP. Quindi, l'obiettivo è che un percorso non venga scelto solo attraverso la destinazione, ma anche sulla base della sorgente. \\ Per risolvere il problema, si deve fare \textit{reverse-engineering} su OSPF, modificando il costo del link, in modo tale che il risultato dato in output da OSPF sia uguale a quello che abbiamo calcolato esternamente. Tramite questo lavoro si ottimizzano le performance della rete. \\ MPLS (Multi-Protocol Label Switching) si pone come soluzione per risolvere problemi di questo tipo.
 
 \newpage
 \subsection{MPLS - Funzionamento}
@@ -1162,7 +1184,7 @@ Il partizionamento e la mappatura, nel forwarding IP convenzionale, vengono effe
     \includegraphics[scale=0.4]{figures/mpls data plane.png}
     \caption{MPLS data plane}\label{figura:dati-mpls}
 \end{figure}
-Supponendo che arrivi un pacchetto al router A1. Questo è inizialmente privo di etichetta; deve quindi essere specificata la classe di inoltro del pacchetto, quindi al successivo nodo viene mandato il pacchetto IP ed in più la nuova informazione riguardante la classe. Questa operazione di etichettamento viene chiamata \textit{PUSH} (il cui nome viene preso dalle tipiche operazioni effettuate su uno stack). Quando il pacchetto arriva al Core LSR A, questo riceve un pacchetto che già possiede un'etichetta, quindi lo inoltrerà, a seconda dell'etichetta, al prossimo hop. Prima di inoltrare un pacchetto, però, viene sostituito il valore dell'etichetta del pacchetto ricevuto con un valore utile a permettere al prossimo nodo di identificare la classe del pacchetto: operazione di \textit{SWAP}. Stessa cosa per il Core LSR C, e così via fino a giungere al router finale: se il pacchetto deve uscire dal dominio, l'ultimo router farà un operazione di \textit{POP}, ovvero rimuove l'etichetta al pacchetto, facendolo tornare come era prima di entrare nel dominio.
+\noindent Supponendo che arrivi un pacchetto al router A1. Questo è inizialmente privo di etichetta; deve quindi essere specificata la classe di inoltro del pacchetto, quindi al successivo nodo viene mandato il pacchetto IP ed in più la nuova informazione riguardante la classe. Questa operazione di etichettamento viene chiamata \textit{PUSH} (il cui nome viene preso dalle tipiche operazioni effettuate su uno stack). Quando il pacchetto arriva al Core LSR A, questo riceve un pacchetto che già possiede un'etichetta, quindi lo inoltrerà, a seconda dell'etichetta, al prossimo hop. Prima di inoltrare un pacchetto, però, viene sostituito il valore dell'etichetta del pacchetto ricevuto con un valore utile a permettere al prossimo nodo di identificare la classe del pacchetto: operazione di \textit{SWAP}. Stessa cosa per il Core LSR C, e così via fino a giungere al router finale: se il pacchetto deve uscire dal dominio, l'ultimo router farà un operazione di \textit{POP}, ovvero rimuove l'etichetta al pacchetto, facendolo tornare come era prima di entrare nel dominio.
 \subparagraph{Codifica del label} Il label viene codificato in una stringa di bit lunga almeno 32 bit. Se sono presenti più etichette, ci saranno altrettanti blocchi da 32 bit, posizionati in una sorta di stack (da qua, i nomi relativi alle operazioni menzionati nel paragrafo precedente).
 \begin{figure}[H]
     \centering
@@ -1174,7 +1196,7 @@ Nello specifico, i campi vengono definiti nel seguente modo:
     \item \textbf{Label:} è un identificatore corto, di lunghezza fissata e significativo solo localmente. Viene utilizzato per identificare un FEC.
     \item \textbf{Traffic Class (TC):} identifica la classe di traffico di appartenenza del pacchetto, per introdurre una differenziazione di trattamento dei pacchetti con uguale etichetta.
     \item \textbf{Time-to-Live (TTL):} nello stile di IPv4 o IPv6. Serve a garantire che in percorsi ciclici il pacchetto non giri all'infinito.
-    \item \textbf{S:} Flag che serve a gestire la pila. Nello specifico, il flag è settato se l'header si riferisce all'etichetta che si trova in fondo alla pila. Quando ci sono più header, si riconoscerà l'ultimo in fondo alla pila grazie a questo flag. Se non ci sono flag a 1, significa che il prossimo header è il pacchetto IP stesso.
+    \item \textbf{S:} Flag che serve a gestire la pila. Nello specifico avremo \textbf{s=0} se oltre alla prima label ne esistano altre successive oppure \textbf{s=1} se è stato raggiunto il fondo dello stack.
 \end{itemize}
 Per ogni protocollo di livello 2, c'è un modo per il ricevitore di sapere che i successivi 4 byte sono MPLS e non occorre leggere altro oltre questi 4 byte per sapere come effettuare il forwarding. Si parla di layer 2.5, perché l'header si pone, appunto, in mezzo ai layer 2 e 3. Quindi, per ogni tecnologia di livello 2, bisogna specificare un valore per il tipo di payload che identifichi che il prossimo layer è MPLS. \\ Questo, però, non succede nel layer di MPLS, cioè non esiste un campo che identifichi quale protocollo sia il successivo, l'informazione viene considerata implicita. Ad esempio, si suppone che tutti i router usino IP. In alternativa si possono utilizzare classi diverse per specificare differenti tipi di payload.
 \subparagraph{Modello funzionale MPLS}
@@ -1187,11 +1209,11 @@ Composto da 3 strutture dati:
 Se il next hop è il router \textit{LSRx}, si fa una POP, ovvero si toglie l'etichetta. Il pacchetto ritorna allo stesso router (LSRx infatti indica lo stesso router che sta processando il pacchetto al momento), che, se non ci saranno più etichette, lo inoltrerà al Next Hop come un normale pacchetto IP.
 \begin{figure}[H]
     \centering
-    \includegraphics[scale=0.3]{figures/mpls strutture dati.png}
+    \includegraphics[scale=0.4]{figures/mpls strutture dati.png}
     \caption{Strutture dati di MPLS}
 \end{figure}
-Quello presentato è uno schema generale, le implementazioni reali potrebbero utilizzare strutture dati organizzate in modi differenti o con nomi diversi. In generale, si identificano con il nome generico di \textit{Label Forwarding Information Base}.
-\subparagraph{Label Switched Path (LSP)} Un LSP è un path unidirezionale, identifica l'insieme delle informazioni correlate distribuite nelle varie Label Forwarding Information Base e che definiscono il percorso da ingresso a uscita. LSP non introduce meccanismi legati alla connessione e non è un tunnel.
+\noindent Quello presentato è uno schema generale, le implementazioni reali potrebbero utilizzare strutture dati organizzate in modi differenti o con nomi diversi. In generale, si identificano con il nome generico di \textit{Label Forwarding Information Base}.
+\subparagraph{Label Switched Path (LSP)} Un LSP è un percorso unidirezionale composto da LSR sul quale viaggiano i pacchetti appartenenti ad una certa FEC per raggiungere la loro destinazione. Identifica l'insieme delle informazioni correlate distribuite nelle varie Label Forwarding Information Base e che definiscono il percorso da ingresso a uscita. LSP non introduce meccanismi legati alla connessione e non è un tunnel.
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.3]{figures/lsp path.png}
@@ -1205,7 +1227,7 @@ Quello presentato è uno schema generale, le implementazioni reali potrebbero ut
     \includegraphics[scale=0.4]{figures/organizzazione header stack.png}
     \caption{Organizzazione degli header con stack}
 \end{figure}
-Operazioni possibili su uno stack:
+\noindent Operazioni possibili su uno stack:
 \begin{itemize}
     \item \textbf{SWAP Lx:} sostituisce l'etichetta al top dello stack con uno specificato label Lx. Non è possibile fare uno swapping di un'etichetta non in cima alla pila.
     \item \textbf{POP:} effettua l'operazione di POP sullo stack. Come nel caso precedente, non è possibile effettuare questa operazione in un'etichetta non in cima alla pila.
@@ -1217,13 +1239,13 @@ L'utilizzo di etichette multiple organizzate in stack, può essere utile per eff
     \includegraphics[scale=0.4]{figures/organizzazione header stack.png}
     \caption{Organizzazione degli header con stack}
 \end{figure}
-L'esempio seguente mostra l'utilizzo delle etichette per creare una sorta di gerarchia di LSP e come vengono gestite le 3 operazioni (swap, pop, push). 
+\noindent L'esempio seguente mostra l'utilizzo delle etichette per creare una sorta di gerarchia di LSP e come vengono gestite le 3 operazioni (swap, pop, push). 
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.3]{figures/tunneling example mpls.png}
     \caption{Esempio di LSP tunneling}
 \end{figure}
-L'etichetta prima di entrare nel dominio era 30, quando arriva al dominio diventa 28 (viene fatto lo swap) e poi successivamente viene fatta la push dell'etichetta relativa al dominio in cui siamo appena entrati (con label 6). Nel percorso all'interno del domain, l'etichetta con label 28 rimane invariata, viene usato il meccanismo del PHP. Quando si arriva all'ultimo router del dominio, viene fatta la POP della label del dominio, e poi la SWAP della label esterna da 28 a 40. Prima di fare la push, ho bisogno di fare la swap, dato che la label 30 ha valore solo per il router R2, mentre per il router R3 quella classe non corrisponde al label 30, ma al 28. Quindi è necessario che R2 faccia la swap.
+\noindent L'etichetta prima di entrare nel dominio era 30, quando arriva al dominio diventa 28 (viene fatto lo swap) e poi successivamente viene fatta la push dell'etichetta relativa al dominio in cui siamo appena entrati (con label 6). Nel percorso all'interno del domain, l'etichetta con label 28 rimane invariata, viene usato il meccanismo del PHP. Quando si arriva all'ultimo router del dominio, viene fatta la POP della label del dominio, e poi la SWAP della label esterna da 28 a 40. Prima di fare la push, ho bisogno di fare la swap, dato che la label 30 ha valore solo per il router R2, mentre per il router R3 quella classe non corrisponde al label 30, ma al 28. Quindi è necessario che R2 faccia la swap.
 
 \paragraph{Piano controllo MPLS} Con il Control Plane un LSR ha a disposizione delle procedure per: 
 \begin{itemize}
@@ -1233,8 +1255,8 @@ L'etichetta prima di entrare nel dominio era 30, quando arriva al dominio divent
 \end{itemize}
 \paragraph{LSR label scope} L'associazione tra label e FEC è un'associazione locale: due LSR vicini utilizzeranno il medesimo label per lo scambio dei pacchetti appartenenti alla stessa FEC, dopodiché ognuno dei due utilizzerà un diverso label per i pacchetti appartenenti alla stessa FEC, ma destinati ad altri LSR. \\ Non è detto che una label corrisponda ad una sola FEC:
 \begin{itemize}
-    \item \textbf{per-platform label space:} dato un LSR  R\textsubscript{D} questo può: associare L\textsubscript{1} ad una FEC F e distribuirla ad un LSR R\textsubscript{U1} oppure associare L\textsubscript{2} ad una FEC F e distribuirla ad un LSR R\textsubscript{U2}.
-    \item \textbf{per-interface label space:} dato un LSR  R\textsubscript{D} questo può: associare L\textsubscript{1} ad una FEC F e distribuirla ad un LSR R\textsubscript{U1} oppure associare L\textsubscript{2} ad una FEC F e distribuirla ad un LSR R\textsubscript{U2}. Se e solo se R\textsubscript{D} può determinare la provenienza da R\textsubscript{U1} o R\textsubscript{U2} di un pacchetto con label L, dunque solitamente se valgono entrambe le seguenti: R\textsubscript{U1} e R\textsubscript{U2} sono connessi mediante una connessione punto punto a R\textsubscript{D} e R\textsubscript{U1} e R\textsubscript{U2} sono gli unici peers con cui R\textsubscript{D} scambia informazioni di binding che riguardano L.
+    \item \textbf{per-interface label scope:} dato un LSR  R\textsubscript{D} questo può: associare L\textsubscript{1} ad una FEC F e distribuirla ad un LSR R\textsubscript{U1} oppure associare L\textsubscript{2} ad una FEC F e distribuirla ad un LSR R\textsubscript{U2}. Se e solo se R\textsubscript{D} può determinare la provenienza da R\textsubscript{U1} o R\textsubscript{U2} di un pacchetto con label L, dunque solitamente se valgono entrambe le seguenti: R\textsubscript{U1} e R\textsubscript{U2} sono connessi mediante una connessione punto punto a R\textsubscript{D} e R\textsubscript{U1} e R\textsubscript{U2} sono gli unici peers con cui R\textsubscript{D} scambia informazioni di binding che riguardano L. Quindi, quando si riceve un pacchetto con un dato label, il mapping ad un'azione dipende sia dallo stesso label ma anche dall'interfaccia da cui stiamo ricevendo il pacchetto. Ad esempio, ricevendo lo stesso label da due router diversi, il router tratterà in maniera differente i due pacchetti perché sono stati ricevuti da due interfacce diverse, dato che sono mappate in due FEC differenti.
+    \item \textbf{per-LSR label scope:} dato un LSR  R\textsubscript{D} questo può: associare L\textsubscript{1} ad una FEC F e distribuirla ad un LSR R\textsubscript{U1} oppure associare L\textsubscript{2} ad una FEC F e distribuirla ad un LSR R\textsubscript{U2} Quindi, ogni label all'interno del router, indipendentemente dal sender del pacchetto, è una differente chiave per mappare FEC differenti. In questo approccio abbiamo bisogno di più labels per fare il mapping.
 \end{itemize}
 
 \subparagraph{Assegnamento ed Allocazione dei Labels} L'assegnamento dei labels è downstream based: sono quindi i downstream LSR a comunicare agli upstream LSR quale label assegnare ad una data FEC. Questo è fatto per evitare la non univocità con peers che fanno uso di un per-interface label space. Quel che può variare è l'allocazione dei label, ossia quando il downstream decide l'associazione label-FEC.
@@ -1252,44 +1274,52 @@ L'etichetta prima di entrare nel dominio era 30, quando arriva al dominio divent
     \includegraphics[scale=0.3]{figures/unsolicited downstream.png}
     \caption{Unsolicited Downstream}
 \end{figure}
-Non è detto, però, che tutti i vicini siano interessati a tale binding, legato all'utilizzo di quel router come downstream LSR per una comunicazione verso la FEC di cui fa advertisement. Si configurano quindi 2 possibilità:
+\noindent Non è detto, però, che tutti i vicini siano interessati a tale binding, legato all'utilizzo di quel router come downstream LSR per una comunicazione verso la FEC di cui fa advertisement. Si configurano quindi 2 possibilità:
 \begin{itemize}
     \item tenere comunque traccia dell'associazione per usi futuri, nel qual caso si parla di \textit{liberal label retention mode}. Tale approccio è consigliato se si vuole avere una reattività ai cambiamenti nel routing, ad esempio per avere sempre a disposizione una backup route nel caso del fallimento di un link.
     \item scartare il binding non tenendone di conto, nel qual caso si parla di \textit{conservative label retention mode}. Tale approccio è consigliato se il problema del salvataggio delle informazioni è piuttosto sentito.
 \end{itemize}
 
-\subparagraph{LSP setup control} I bindings FEC-to-label sono distribuiti solo con l'intento di stabilire cammini label-switched. Si creano quindi 2 differenti modalità che rispondono sostanzialmente a due domande: quale FEC utilizzare per avvertire di un binding? La scelta di una FEC determina quale LSP sono costruiti. Quando avvertire questi binding? Questo determina chi ha il controllo sul setup della LSP.
+\subsubsection{LSP setup control} I bindings FEC-to-label sono distribuiti solo con l'intento di stabilire cammini label-switched. Si creano quindi 2 differenti modalità che rispondono sostanzialmente a due domande: quale FEC utilizzare per avvertire di un binding? La scelta di una FEC determina quale LSP sono costruiti. Quando avvertire questi binding? Questo determina chi ha il controllo sul setup della LSP.
 
-\subparagraph{Ordered Control} Con questa modalità, un LSR effettua un binding tra FEC e label solamente se è un egress router per quella FEC e ha già ricevuto un'informazione di binding per quella FEC. \\
-Con la \textbf{Unsolicited Downstream}, l'approccio è il seguente: 
+\begin{itemize}
+    \item \textbf{Ordered control:} Egress (o ingress) LSR hanno il controllo sul setup di un LSP. Fornisce una prevenzione dai cicli ma ha come svantaggio la necessità che i bindings si propaghino per tutta la rete prima che si possa stabilire un LSP.\\
+    Con questa modalità, un LSR effettua un binding tra FEC e label solamente se è un egress router per quella FEC e ha già ricevuto un'informazione di binding per quella FEC.
+    \item \textbf{Indipendent control:} Tutti i router fanno l'advertising della FEC indipendentemente (ma devono farlo in una modalità consistente). Il comportamento di default è che si mappi ogni FEC per tutti i prefissi della tabella di routing.
+\end{itemize}
+
+\paragraph{Ordered Control - Unsolicited Downstream}
+
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.4]{figures/ordered control unsolicited downstream.png}
     \caption{Ordered Control - Unsolicited Downstream}
 \end{figure}
+
 \begin{itemize}
     \item Il setup del cammino parte dall'egress router che costituirà l'ultimo hop di LSP.
     \item Questo router inizia a fare un broadcasting di messaggi di binding ai suoi vicini per un certo FEC, seguendo un approccio unsolicited downstream.
     \item Ogni altro router, appena ricevuto un messaggio di binding da un router downstream, utilizza la routing table L3 per scegliere quale binding usare e quale router selezionare come hop successivo. Una volta completata la scelta, genere la NHLFE e inizia a fare broadcasting del suo binding ai suoi vicini.
     \item Il processo prosegue fino al router ingress da cui il traffico sarà "iniettato" e il cammino viene così formato.
 \end{itemize}
-Con la \textbf{Downstream On-Demand}, si ha il seguente approccio:
+\paragraph{Ordered Control - Downstream on Demand}
+
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.4]{figures/ordered control downstream on-demand.png}
     \caption{Ordered Control - Downstream On-demand}
 \end{figure}
+
 \begin{itemize}
     \item Il setup del cammino inizia dal router ingress da cui il traffico è iniettato, appena ha bisogno di scoprire il cammino per un dato FEC.
-    \item Utilizzando le tabelle di routing L3, determina il prossimo hop per quello specifico FEC; poi al prossimo hop che binding vuole usare per quel FEC, seguendo un approccio downstream on-demand.
+    \item Utilizzando le tabelle di routing L3, determina il prossimo hop per quello specifico FEC; poi al prossimo hop chiede che binding vuole usare per quel FEC, seguendo un approccio downstream on-demand.
     \item Quando riceve la richiesta con le informazioni di binging dal router upstream, il router downstream, a sua volta, ha bisogno di trovare un cammino per il suddetto FEC. Quindi, a sua volta, determina il prossimo hop dalla sua tabella di routing L3 e gli chiede che binding vuole utilizzare per questo FEC.
     \item Il processo è ripetuto per tutti i router fino a raggiungere il router egress, che costituirà l'hop finale di LSP. Questo router sa come raggiungere la destinazione finale, seleziona un label per la FEC e comunica il binding al router upstream che lo ha richiesto precedentemente.
     \item A questo punto l'ultimo router, a sua volta, decide un binding e lo comunica al router upstream e così via, fino al router iniziale: il cammino è finalmente costruito.
 \end{itemize}
 Si osserva, quindi, come l'Ordered Control associato all'Unsolicited Downstream: generi un reverse tree e fornisca aggregazione. \\ Mentre, l'Ordered Control associato ad un Downstream On Demand generi un LSP per ogni ingress router.
 
-\subparagraph{Indipendent Control}
-In questo caso, c'è soltanto il metodo \textbf{Unsolicited Downstream}:
+\paragraph{Indipendent Control - Unsolicited Downstream}
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.3]{figures/indipendent control.png}
@@ -1297,14 +1327,14 @@ In questo caso, c'è soltanto il metodo \textbf{Unsolicited Downstream}:
 \end{figure}
 \begin{itemize}
     \item Ogni router crea e distribuisce i suoi binding indipendentemente.
-    \item All'inizio, quando non c'è ancora nessun binding, un FEC è associato ad un'azione POP e l'indirizzo del prossimo hop, è l'indirizzo di loopback. In questo modo, il label MPLS di un pacchetto è rimosso e il pacchetto è passato al livello 3.
+    \item All'inizio, quando non c'è ancora nessun binding, un FEC è associato ad un'azione POP e l'indirizzo del prossimo hop è l'indirizzo di loopback. In questo modo, il label MPLS di un pacchetto è rimosso e il pacchetto è passato al livello 3.
     \item Quando il router downstream decide quale binding usare e lo comunica al router upstream, quest'ultimo cambia l'azione POP con una SWAP del label deciso dal router downstream e setta il downstream come prossimo hop.
 \end{itemize}
 Dovendo confrontare Indipendent Control ed Ordered Control, possiamo asserire che il secondo fornisce una prevenzione dai loops, ma ha come svantaggio la necessità che i bindings si propaghino per tutta la rete prima che si possa stabilire un LSP. 
 \\
 Si aggiunge anche una nota che riguarda il modo in cui i router vengono a sapere che sono il penultimo hop e che quindi possono effettuare il PHP. L'ultimo router lo dice esplicitamente, questo è fatto imponendo all'ultimo router di utilizzare un label invertito per il binding. Questo label numero 3, detto \textit{null label}, ogni volta che un upstream router riceve un binding per il label 3, significa che il prossimo router è l'ultimo nell'LSP. 
 
-\subparagraph{Aggregazione (MP2P)} È possibile trattare l'unione di più FEC a sua volta come una FEC, ciò risulta utile quando dei LSP condividono lunghi tratti di percorso. In tal caso le N FEC sono dette aggregabili e su di esse si può agire in 3 modi:
+\paragraph{Aggregazione (MP2P)} È possibile trattare l'unione di più FEC a sua volta come una FEC, ciò risulta utile quando dei LSP condividono lunghi tratti di percorso. In tal caso le N FEC sono dette aggregabili e su di esse si può agire in 3 modi:
 \begin{itemize}
     \item Aggregarle in un'unica FEC.
     \item Aggregarle in un insieme di M FEC (con M $<$ N).
@@ -1327,14 +1357,7 @@ Progettato specificatamente per la distribuzione dei label. Si basa su IGP (Inte
     \includegraphics[scale=0.4]{figures/RSVP label distribution.png}
     \caption{RSVP for label distribution}
 \end{figure}
-Ci sono 2 tipi di messaggi: PATH message e Reservation (RESV) message. I messaggi PATH viaggiano dall'upstream al downstream (from HEAD-END a TAIL-END) in un dominio e propagano l'info riguardante la FEC che si vuole stabilire. I messaggi RESV viaggiano poi all'indietro sullo stesso cammino, seguiti da messaggi di path che forniscono informazioni riguardo i binding dei label. \\ Il protocollo garantisce che RESV seguano esattamente il cammino dei PATH.
-
-\subsection{LSP setup control} Quale FEC si utilizza per fare l'advertising di un binding? \\ Quando si fa l'advertising del binding?
-\begin{itemize}
-    \item \textbf{Ordered control:} Egress (o ingress) LSR hanno il controllo su quale LSP devono fare setup. Il comportamento di default è che la FEC mappi l'indirizzo edge LSR loopback.
-    \item \textbf{Indipendent control:} Tutti i router fanno l'advertising della FEC indipendentemente (ma devono farlo in una modalità consistente). Il comportamento di default è che si mappi ogni FEC per tutti i prefissi della tabella di routing.
-\end{itemize}
-Si considera adesso una destinazione del network nella tabella di routing IP (1 network prefix), questo ha una corrispondenza stretta con una certa FEC. In tutti i network si va a definire una corrispondenza tra una FEC e un edge router. Se ho un dominio di transito (questo funziona per pacchetti entranti nel network e trova un cammino all'interno di questo stesso network in modo da trovare un'uscita da quest'ultimo), dato che il numero di router (egress e ingress) sono tipicamente un subset ridotto rispetto a tutti gli altri, l'unica informazione di cui abbiamo bisogno è di conoscere il cammino da usare per raggiungere l'edge router in modo da uscire dal dominio. \\ Invece di avere una entry per ogni network, potremmo avere, all'inizio, una entry per ogni router edge. \\ Se ad esempio consideriamo OSPF, ogni nodo conosce l'ID del router edge e conosce il modo di raggiungerlo. Se il primo router (R1), quando arriva un pacchetto, con indirizzo di destinazione 10.1.1.1, utilizza il database OSPF e sa che questo è esterno a questo sistema autonomo, controlla quale sia l'edge router da usare per questo indirizzo. Da qui, la corrispondenza tra LSP ed edge router. \\ Questo è un pezzo di informazione che è condiviso tra tutti i router, si aggregga tutto il traffico che sta andando all'esterno del dominio attraverso uno specifico LSR. In ogni caso, tutti i pacchetti seguono esattamente lo stesso cammino che seguirebbero con IP. Non stiamo cambiando come i cammini sono calcolati e non c'è nessun controllo sul cammino.
+\noindent Ci sono 2 tipi di messaggi: PATH message e Reservation (RESV) message. I messaggi PATH viaggiano dall'upstream al downstream (from HEAD-END a TAIL-END) in un dominio e propagano l'info riguardante la FEC che si vuole stabilire. I messaggi RESV viaggiano poi all'indietro sullo stesso cammino, seguiti da messaggi di path che forniscono informazioni riguardo i binding dei label. \\ Il protocollo garantisce che RESV seguano esattamente il cammino dei PATH.
 
 \subsection{Supporto MPLS per DiffServ} MPLS è una soluzione per fare il forwarding dei pacchetti IP alla loro destinazione, questo è per prendere decisioni riguardo il prossimo hop. \\ DiffServ è un'architettura network e soluzione di molti problemi, indipendentemente dalle funzioni di forwarding. MPLS è relativo al data plain, ma anche il per hop behaviour è relativo al data plain. MPLS ha il suo header, QoS utilizza quello di IP (campo DSCP per scegliere PHB). Vorremmo un sistema per evitare di doverlo consultare. \\ Nell'header MPLS, ci sono 3 bit per il traffic class (TC), quindi si va ad utilizzare questo campo, se ci sono soltanto 8 PHB nel dominio (si codificano i 6 bit di DSCP in questi 3). \\ Che succede se ho più di 8 PHB? Si utilizza lo stesso label: il label indica il prossimo hop e TC come gestire il pacchetto. Quindi si configurano 2 casi:
 \begin{itemize}
@@ -1420,7 +1443,7 @@ L'architettura attuale di Internet prevede diverse autorità che controllano dif
     \includegraphics[scale=0.5]{figures/internet_architecture.jpg}
     \caption{Architettura di Internet con AS}
 \end{figure}
-BGP è un'istanza dell'algoritmo \textit{Path Vector Routing}. Non è un algoritmo di tipo link-state né di tipo distance-vector in quanto:
+\noindent BGP è un'istanza dell'algoritmo \textit{Path Vector Routing}. Non è un algoritmo di tipo link-state né di tipo distance-vector in quanto:
 \begin{itemize}
     \item (link-state) costruire la topologia dell'Internet globale ad ogni nodo e calcolare il percorso minimo è una soluzione non-scalabile.
     \item (distance-vector) c'è una buona probabilità che emergano cicli che sarebbero pericolosi in una topologia così grande.
@@ -1459,7 +1482,7 @@ Il problema delle cosiddette "Corporate WANs" consiste nel voler collegare fra l
     \includegraphics[scale=0.5]{figures/peer-to-peer approach.png}
     \caption{Peer-to-peer approach}\label{figura:peer}
 \end{figure}
-Il problema di questo approccio riguarda la figura \ref{figura:peer}, in cui i colori gialli delle nuvole indicano che appartengono ad altri clienti rispetto a quelli delle nuvole grigie: 5 siti, 2 clienti. Questi clienti fanno un indirizzamento indipendente, ci sono deglle sovrapposizioni. Quindi, i problemi sono: come realizzare private addressing e isolamento del traffico. \\
+\noindent Il problema di questo approccio riguarda la figura \ref{figura:peer}, in cui i colori gialli delle nuvole indicano che appartengono ad altri clienti rispetto a quelli delle nuvole grigie: 5 siti, 2 clienti. Questi clienti fanno un indirizzamento indipendente, ci sono deglle sovrapposizioni. Quindi, i problemi sono: come realizzare private addressing e isolamento del traffico. \\
 Una soluzione potrebbe essere quella di inserire dei filtri nei Provider Edge Routers. Un pacchetto originato, ad esempio da 10.2.0.0 "grigio", se è destinato ad un sito "grigio" viene permesso, altrimenti viene filtrato. In pratica, si configura una grande ACL all'interfaccia di ingresso di ogni PER, per controllare se il traffico può entrare nella rete o meno: questo in base al fatto che sia indirizzato ad uno dei siti consentiti o meno (assumendo che si sappia la source). Questa non è una soluzione buona, dato che si considera la network del provider come un "single routing domain", non si possono avere più site con lo stesso indirizzo: si perderebbe così il private addressing oppure, al più, dovremmo implementare delle complicate traduzioni. Si raggiungerebbe comunque un isolamento del traffico, ma ad un costo molto alto, dato che si dovrebbero mantenere dei complessi ACL ad ogni PE. Questa configurazione dovrebbe poi essere continuamente revisionata, dato che ogni volta che cambia la topologia di rete, si devono riconfigurare i PE (le loro ACL). Le ACL, inoltre, rallentano il routing e aggiungono latenza. Quindi, questa soluzione è di difficile applicazione. \\ Cercando un'altra soluzione, l'effetto che si vorrebbe ottenere, è quello che se c'è un pacchetto che va da CE a PE, questo venga consegnato solo se la routing table che è usata per quel pacchetto, che include solo gli indirizzi di destinazione degli altri siti dello stesso customer, sa qual è il next hop di quel pacchetto. Quindi, sempre nella figura \ref{figura:peer}, se consideriamo il site 10.3.0.0/16, appartenente ad un cliente "giallo", se questo manda un pacchetto con destinazione 10.2.0.0/16, ci si aspetterebbe che il PE a cui è attaccato filtri questo pacchetto, in quanto nella rete del cliente giallo, non ci sono sites con tale indirizzo. Come si può ottenere questo effetto? \\ La soluzione è tenere diverse routing table nel PE, una per ogni customer. E' come se si considerassero più router logici, uno per ogni cliente. Si controlla nella tabella giusta, in base al cliente che ti sta inviando quel pacchetto. Questo si chiama \textit{Constrain Routing}, perché i PE si scambiano informazioni, che saranno diverse per diversi clienti, quindi durante lo scambio delle informazioni occorrerà mettere informazioni relative ad un certo cliente, nella sua routing table. C'è ancora un problema di overlapping, quando una rete manda un pacchetto con un indirizzo, presente in 2 clienti diversi, si crea un problema di forwarding per siti con indirizzi in overlapping. La soluzione quindi è quella di utilizzare un tunneling tra provider edge router. È una soluzione standard che troviamo negli RFC, chiamata \textit{BGP/MPLS IP Layer 3 VPN}.
 
 \subsection{BGP/MPLS IP VPN} Considerando lo scenario presente nella seguente figura:
@@ -1468,13 +1491,13 @@ Una soluzione potrebbe essere quella di inserire dei filtri nei Provider Edge Ro
     \includegraphics[scale=0.5]{figures/bgp-mpls vpn.png}
     \caption{Rete BGP/MPLS IP VPN}\label{figura:bgpmpls}
 \end{figure}
-Il customer deve solo avere un link al PE e notificare com'è fatta la sua rete. Nella figura \ref{figura:bgpmpls} si ha P che è un Core Router. In ogni Provider Edge Router si hanno diverse tabelle, una per ogni Customer Edge Router connesso. Si distinguono i pacchetti dei diversi clienti in base all'interfaccia sulla quale arrivano. Queste tabelle sono chiamate \textit{Virtual Routing Forwarding Table (VRF)}. Quindi nel PE1, troveremo una VRF per CE1.1 e CE2.1, con questo approccio è come avere molteplici router virtuali, c'è poi una routing table per il global forwarding, ovvero per forwardare traffico non destinato a siti customers. \\ Quindi, se il site1 (grigio), manda un pacchetto all'indirizzo 10.3.1.1, il pacchetto va prima a CE1.1, poi a PE1 che, in base alla interfaccia di provenienza, sa che deve guardare la tabella di routing per il cliente 1. Non troverà un'entrata per 10.3.0.0/16 e quindi scarterà il pacchetto. Come fa PE1 a sapere che, ad esempio, 10.2.0.0/16 può essere raggiunta tramite PE2? Glielo deve dire PE2, occorre un dynamic routing protocol, ovvero PE2 avverte PE1 che quell'indirizzo è raggiungibile attraverso di lui, come fanno i normali protocolli di routing. Tuttavia, adesso si devono scambiare informazioni anche riguardo la proprietà dell'indirizzo, customer giallo o grigio. Questo può essere fatto facendo facendo girare un'istanza del protocollo di routing per VPN. In tal modo è come avere n reti separate, anche se questo approccio non scala, dato che si devono configurare tante istanze di routing protocol per quanti customer si hanno. \\ Si vuole quindi avere una sola istanza del protocollo di routing. In questo caso entra in gioco BGP. 
+\noindent Il customer deve solo avere un link al PE e notificare com'è fatta la sua rete. Nella figura \ref{figura:bgpmpls} si ha P che è un Core Router. In ogni Provider Edge Router si hanno diverse tabelle, una per ogni Customer Edge Router connesso. Si distinguono i pacchetti dei diversi clienti in base all'interfaccia sulla quale arrivano. Queste tabelle sono chiamate \textit{Virtual Routing Forwarding Table (VRF)}. Quindi nel PE1, troveremo una VRF per CE1.1 e CE2.1, con questo approccio è come avere molteplici router virtuali, c'è poi una routing table per il global forwarding, ovvero per forwardare traffico non destinato a siti customers. \\ Quindi, se il site1 (grigio), manda un pacchetto all'indirizzo 10.3.1.1, il pacchetto va prima a CE1.1, poi a PE1 che, in base alla interfaccia di provenienza, sa che deve guardare la tabella di routing per il cliente 1. Non troverà un'entrata per 10.3.0.0/16 e quindi scarterà il pacchetto. Come fa PE1 a sapere che, ad esempio, 10.2.0.0/16 può essere raggiunta tramite PE2? Glielo deve dire PE2, occorre un dynamic routing protocol, ovvero PE2 avverte PE1 che quell'indirizzo è raggiungibile attraverso di lui, come fanno i normali protocolli di routing. Tuttavia, adesso si devono scambiare informazioni anche riguardo la proprietà dell'indirizzo, customer giallo o grigio. Questo può essere fatto facendo facendo girare un'istanza del protocollo di routing per VPN. In tal modo è come avere n reti separate, anche se questo approccio non scala, dato che si devono configurare tante istanze di routing protocol per quanti customer si hanno. \\ Si vuole quindi avere una sola istanza del protocollo di routing. In questo caso entra in gioco BGP. 
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.6]{figures/BGP route distribution.png}
     \caption{BGP Route Distribution}
 \end{figure}
-Tramite un BGP update, PE1 dirà a PE2 quali destinazioni sono raggiungibili tramite di lui, specificando anche il site. Si sta, quindi, informando il PE2 che il PE1 è il next hop per certe destinazioni. Il problema però sorge perché con BGP standard, non si può, nella lista, mettere 2 volte lo stesso indirizzo di destinazione. Non c'è spazio per marcare un indirizzo come "grigio" piuttosto che "giallo". \\ La soluzione risulta quella di definire nuove famiglie di indirizzi VPN-IP: un nuovo schema di indirizzamento, dove aggiungiamo alla destinazion network un prefisso, chiamato \textit{Route Distinguisher (RD)}, di 8 byte che deve essere unico globalmente. 
+\noindent Tramite un BGP update, PE1 dirà a PE2 quali destinazioni sono raggiungibili tramite di lui, specificando anche il site. Si sta, quindi, informando il PE2 che il PE1 è il next hop per certe destinazioni. Il problema però sorge perché con BGP standard, non si può, nella lista, mettere 2 volte lo stesso indirizzo di destinazione. Non c'è spazio per marcare un indirizzo come "grigio" piuttosto che "giallo". \\ La soluzione risulta quella di definire nuove famiglie di indirizzi VPN-IP: un nuovo schema di indirizzamento, dove aggiungiamo alla destinazion network un prefisso, chiamato \textit{Route Distinguisher (RD)}, di 8 byte che deve essere unico globalmente. 
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.6]{figures/Route distinguisher.png}
@@ -1497,13 +1520,13 @@ Questa modalità di utilizzare Route Target è chiamata \textit{Full-mesh}.
     \includegraphics[scale=0.5]{figures/full-mesh vpn.png}
     \caption{Full-mesh VPN}
 \end{figure}
-Adesso, bisogna vedere come inoltrare i pacchetti. Dato che nel mezzo a dei PE, potrebbero esserci delle reti IP, quindi con destination-based forwarding, risulta quindi impossibile proseguire. È necessario fare tunneling tra PE (MPLS tunnel). I router interni scambiano solamente i pacchetti tra i PE, non sanno nulla dei VPN-IP e delle VRF, quindi torna di nuovo il problema dell'overlapping degli IP. Giunto ad un PE, l'informazione "giallo o grigio", non può essere trovata nel pacchetto IP (dato che è presente il tunnel). L'idea è quindi quella di avere più tunnel, uno per VPN. Quindi, se un pacchetto è appartentente alla VPN "gialla", attraverserà l'LSP "giallo". \\ Si può, però, fare di meglio attraverso il label stacking. Si avrà un tunnel tra PE1 e PE2 e si avrà lo stack di multipli LSP su questo tunnel, uno per ogni VPN. 
+\noindent Adesso, bisogna vedere come inoltrare i pacchetti. Dato che nel mezzo a dei PE, potrebbero esserci delle reti IP, quindi con destination-based forwarding, risulta quindi impossibile proseguire. È necessario fare tunneling tra PE (MPLS tunnel). I router interni scambiano solamente i pacchetti tra i PE, non sanno nulla dei VPN-IP e delle VRF, quindi torna di nuovo il problema dell'overlapping degli IP. Giunto ad un PE, l'informazione "giallo o grigio", non può essere trovata nel pacchetto IP (dato che è presente il tunnel). L'idea è quindi quella di avere più tunnel, uno per VPN. Quindi, se un pacchetto è appartentente alla VPN "gialla", attraverserà l'LSP "giallo". \\ Si può, però, fare di meglio attraverso il label stacking. Si avrà un tunnel tra PE1 e PE2 e si avrà lo stack di multipli LSP su questo tunnel, uno per ogni VPN. 
 \begin{figure}[H]
     \centering
     \includegraphics[scale=0.5]{figures/vpn label stacking.png}
     \caption{MPLS label stacking su VPN}
 \end{figure}
-Lx ed Ly individuano il tunnel tra PE1 e PE2, L2 individua la VPN giusta. Come sapere a chi corrisponde L2? \\ Questa informazione la propaga BGP. Il messaggio BGP contiene RD, RT (per il route filtering), label che indica quale routing table usare. Per aggiungere un nuovo site, con questo approccio, è necessario ritoccare la configurazione del PE a cui si sta connettendo: gli deve comunicare gli RT di import ed export. Queste info vengono poi passate fra i router col protocollo di routing. \\ Come si può linkare una label ad una specifica tabella? Mediante MP-iBGB, il router PE2 indica nel messaggio di MP-iBGP update, quale label deve essere utilizzato come VPN label.
+\noindent Lx ed Ly individuano il tunnel tra PE1 e PE2, L2 individua la VPN giusta. Come sapere a chi corrisponde L2? \\ Questa informazione la propaga BGP. Il messaggio BGP contiene RD, RT (per il route filtering), label che indica quale routing table usare. Per aggiungere un nuovo site, con questo approccio, è necessario ritoccare la configurazione del PE a cui si sta connettendo: gli deve comunicare gli RT di import ed export. Queste info vengono poi passate fra i router col protocollo di routing. \\ Come si può linkare una label ad una specifica tabella? Mediante MP-iBGB, il router PE2 indica nel messaggio di MP-iBGP update, quale label deve essere utilizzato come VPN label.
 
 \paragraph{Benefici di BGP/MPLS IP VPN} Per quanto riguarda il customer:
 \begin{itemize}
